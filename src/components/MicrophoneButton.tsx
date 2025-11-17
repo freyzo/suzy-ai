@@ -1,5 +1,6 @@
 import { Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDeviceType } from "@/hooks/use-mobile";
 
 interface MicrophoneButtonProps {
   isActive: boolean;
@@ -8,8 +9,21 @@ interface MicrophoneButtonProps {
 }
 
 const MicrophoneButton = ({ isActive, onClick, disabled }: MicrophoneButtonProps) => {
+  const deviceType = useDeviceType();
+  
+  // Responsive sizing: mobile gets larger touch targets (min 48px, we use 64px for greasy fingers)
+  const buttonSize = deviceType === 'mobile' ? 'w-16 h-16' : deviceType === 'tablet' ? 'w-28 h-28' : 'w-32 h-32';
+  const iconSize = deviceType === 'mobile' ? 'w-8 h-8' : deviceType === 'tablet' ? 'w-10 h-10' : 'w-12 h-12';
+  const glowSize = deviceType === 'mobile' ? 'w-20 h-20' : deviceType === 'tablet' ? 'w-28 h-28' : 'w-32 h-32';
+  const outerGlowSize = deviceType === 'mobile' ? 'w-24 h-24' : deviceType === 'tablet' ? 'w-36 h-36' : 'w-40 h-40';
+  const rippleSizes = deviceType === 'mobile' 
+    ? ['w-20 h-20', 'w-24 h-24', 'w-28 h-28']
+    : deviceType === 'tablet'
+    ? ['w-36 h-36', 'w-40 h-40', 'w-44 h-44']
+    : ['w-40 h-40', 'w-44 h-44', 'w-48 h-48'];
+
   return (
-    <div className="relative flex items-center justify-center animate-float">
+    <div className="relative flex items-center justify-center animate-float touch-manipulation">
       {/* Sparkle particles */}
       <div className="absolute inset-0 pointer-events-none">
         {[...Array(6)].map((_, i) => (
@@ -17,8 +31,8 @@ const MicrophoneButton = ({ isActive, onClick, disabled }: MicrophoneButtonProps
             key={i}
             className="absolute rounded-full bg-white animate-sparkle"
             style={{
-              width: '4px',
-              height: '4px',
+              width: deviceType === 'mobile' ? '3px' : '4px',
+              height: deviceType === 'mobile' ? '3px' : '4px',
               left: `${20 + (i * 15)}%`,
               top: `${15 + (i % 3) * 30}%`,
               animationDelay: `${i * 0.3}s`,
@@ -37,7 +51,7 @@ const MicrophoneButton = ({ isActive, onClick, disabled }: MicrophoneButtonProps
 
       {/* Middle glow with shimmer */}
       <div
-        className={`absolute w-32 h-32 rounded-full bg-gradient-radial from-primary/50 to-transparent blur-2xl transition-all duration-300 ${
+        className={`absolute ${glowSize} rounded-full bg-gradient-radial from-primary/50 to-transparent blur-2xl transition-all duration-300 ${
           isActive ? "animate-orb-glow animate-shimmer" : "opacity-40"
         }`}
       />
@@ -63,8 +77,8 @@ const MicrophoneButton = ({ isActive, onClick, disabled }: MicrophoneButtonProps
         disabled={disabled}
         size="lg"
         className={`
-          relative w-32 h-32 rounded-full transition-all duration-500 border-0
-          backdrop-blur-sm
+          relative ${buttonSize} rounded-full transition-all duration-500 border-0
+          backdrop-blur-sm touch-manipulation min-h-[48px] min-w-[48px]
           ${isActive ? "animate-orb-pulse" : ""}
         `}
         style={{
@@ -128,9 +142,9 @@ const MicrophoneButton = ({ isActive, onClick, disabled }: MicrophoneButtonProps
         {/* Icon with glow */}
         <div className="relative z-10 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">
           {isActive ? (
-            <MicOff className="w-12 h-12 text-white" style={{ filter: 'drop-shadow(0 0 8px hsl(var(--primary-glow)))' }} />
+            <MicOff className={`${iconSize} text-white`} style={{ filter: 'drop-shadow(0 0 8px hsl(var(--primary-glow)))' }} />
           ) : (
-            <Mic className="w-12 h-12 text-white/90" style={{ filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))' }} />
+            <Mic className={`${iconSize} text-white/90`} style={{ filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))' }} />
           )}
         </div>
       </Button>
@@ -138,13 +152,13 @@ const MicrophoneButton = ({ isActive, onClick, disabled }: MicrophoneButtonProps
       {/* Ripple effect when active - anime style */}
       {isActive && (
         <>
-          <div className="absolute w-40 h-40 rounded-full border-2 border-primary/40 animate-ping" />
+          <div className={`absolute ${rippleSizes[0]} rounded-full border-2 border-primary/40 animate-ping`} />
           <div
-            className="absolute w-44 h-44 rounded-full border-2 border-primary/30 animate-ping"
+            className={`absolute ${rippleSizes[1]} rounded-full border-2 border-primary/30 animate-ping`}
             style={{ animationDelay: "0.5s" }}
           />
           <div
-            className="absolute w-48 h-48 rounded-full border border-primary/20 animate-ping"
+            className={`absolute ${rippleSizes[2]} rounded-full border border-primary/20 animate-ping`}
             style={{ animationDelay: "1s" }}
           />
         </>

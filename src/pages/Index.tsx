@@ -178,9 +178,9 @@ const Index = () => {
   const isActive = conversation.status === "connected" || isConnecting;
   const isSpeaking = conversation.isSpeaking;
 
-  // Character position and scale (simplified from airi)
+  // Character position and scale (responsive)
   const characterPosition = { x: isMobile ? 0 : -10, y: 0 };
-  const characterScale = 1;
+  const characterScale = isMobile ? 0.85 : 1;
 
   const [isDark, setIsDark] = useState(false);
   const [mouthOpenSize, setMouthOpenSize] = useState(0);
@@ -263,7 +263,7 @@ const Index = () => {
           {/* Main content area */}
           <div className="relative flex flex-1 flex-row gap-y-0 gap-x-2 max-md:flex-col">
             {/* Character display - takes up left side */}
-            <div className="flex-1 min-w-[50%] h-full relative">
+            <div className="flex-1 min-w-[50%] h-full relative max-md:min-w-full">
               <CharacterDisplay
                 paused={paused}
                 focusAt={mousePosition}
@@ -276,17 +276,17 @@ const Index = () => {
 
             {/* Interactive area - Voice controls */}
             {!isMobile && (
-              <div className="absolute right-4 bottom-4 flex flex-col gap-4 z-10">
+              <div className="absolute right-4 bottom-4 flex flex-col gap-4 z-10 max-lg:right-2 max-lg:bottom-2">
                 {/* Voice interface */}
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-8 max-lg:gap-4">
                   {/* Microphone */}
-                  <div className="flex flex-col items-center gap-4">
+                  <div className="flex flex-col items-center gap-4 max-lg:gap-2">
                     <MicrophoneButton
                       isActive={isActive}
                       onClick={handleMicClick}
                       disabled={isConnecting}
                     />
-                    <p className="text-sm text-foreground/80">
+                    <p className="text-sm text-foreground/80 max-lg:text-xs">
                       {isConnecting
                         ? "Connecting..."
                         : isActive
@@ -296,9 +296,9 @@ const Index = () => {
                   </div>
 
                   {/* Voice Orb */}
-                  <div className="flex flex-col items-center gap-4">
+                  <div className="flex flex-col items-center gap-4 max-lg:gap-2">
                     <VoiceOrb isActive={isActive} isSpeaking={isSpeaking} />
-                    <p className="text-sm text-foreground/80">
+                    <p className="text-sm text-foreground/80 max-lg:text-xs">
                       {isSpeaking ? "Speaking..." : isActive ? "Listening..." : "Ready"}
                     </p>
                   </div>
@@ -306,8 +306,8 @@ const Index = () => {
 
                 {/* Info card */}
                 {isActive && (
-                  <div className="mt-4 p-6 bg-card/30 backdrop-blur-md border border-border/50 rounded-2xl max-w-md text-center animate-in fade-in slide-in-from-bottom-4 duration-500 shadow-lg">
-                    <p className="text-sm text-foreground/90 leading-relaxed">
+                  <div className="mt-4 p-6 bg-card/30 backdrop-blur-md border border-border/50 rounded-2xl max-w-md text-center animate-in fade-in slide-in-from-bottom-4 duration-500 shadow-lg max-lg:p-4 max-lg:max-w-xs">
+                    <p className="text-sm text-foreground/90 leading-relaxed max-lg:text-xs">
                       Ask me about my experience, building scalable services, or my passion for AI/ML.
                     </p>
                   </div>
@@ -317,8 +317,8 @@ const Index = () => {
 
             {/* Mobile interactive area */}
             {isMobile && (
-              <div className="absolute right-4 bottom-4 flex flex-col gap-4 z-10">
-                <div className="flex items-center gap-8">
+              <div className="absolute right-2 bottom-2 flex flex-col gap-3 z-10 touch-manipulation">
+                <div className="flex items-center gap-4">
                   <MicrophoneButton
                     isActive={isActive}
                     onClick={handleMicClick}
@@ -327,8 +327,8 @@ const Index = () => {
                   <VoiceOrb isActive={isActive} isSpeaking={isSpeaking} />
                 </div>
                 {isActive && (
-                  <div className="p-4 bg-card/30 backdrop-blur-md border border-border/50 rounded-2xl text-center shadow-lg">
-                    <p className="text-sm text-foreground/90">
+                  <div className="p-3 bg-card/30 backdrop-blur-md border border-border/50 rounded-xl text-center shadow-lg max-w-[200px]">
+                    <p className="text-xs text-foreground/90 leading-relaxed">
                       {isConnecting
                         ? "Connecting..."
                         : isActive

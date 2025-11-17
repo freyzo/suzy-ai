@@ -56,7 +56,7 @@ export default function CharacterDisplay({
 
   return (
     <div
-      className="character-container flex-1 min-w-[50%] h-full w-full relative"
+      className="character-container flex-1 min-w-[50%] h-full w-full relative max-md:min-w-full touch-manipulation"
       style={{
         filter: hairColor === 'original' ? 'none' : getHairColorFilter(hairColor),
         transition: 'filter 0.3s ease',
@@ -103,7 +103,7 @@ export default function CharacterDisplay({
             <img
               src="/assets/live2d/models/hiyori_free_zh/avatar.png"
               alt="Suzy Character"
-              className="w-auto h-[95vh] max-h-[95vh] max-w-[50vw] object-contain object-bottom pointer-events-auto select-none z-10"
+              className="w-auto h-[95vh] max-h-[95vh] max-w-[50vw] max-md:max-w-[90vw] object-contain object-bottom pointer-events-auto select-none z-10"
               style={{
                 imageRendering: 'auto',
                 transform: `scale(${scale})`,

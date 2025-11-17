@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Butterfly from "./Butterfly";
+import { useDeviceType } from "@/hooks/use-mobile";
 
 interface VoiceOrbProps {
   isActive: boolean;
@@ -8,6 +9,7 @@ interface VoiceOrbProps {
 
 const VoiceOrb = ({ isActive, isSpeaking }: VoiceOrbProps) => {
   const [intensity, setIntensity] = useState(0);
+  const deviceType = useDeviceType();
 
   useEffect(() => {
     if (isSpeaking) {
@@ -20,8 +22,21 @@ const VoiceOrb = ({ isActive, isSpeaking }: VoiceOrbProps) => {
     }
   }, [isSpeaking]);
 
+  // Responsive sizing
+  const orbSize = deviceType === 'mobile' ? 'w-32 h-32' : deviceType === 'tablet' ? 'w-40 h-40' : 'w-48 h-48';
+  const glowSize = deviceType === 'mobile' ? 'w-40 h-40' : deviceType === 'tablet' ? 'w-52 h-52' : 'w-64 h-64';
+  const outerGlowSize = deviceType === 'mobile' ? 'w-48 h-48' : deviceType === 'tablet' ? 'w-60 h-60' : 'w-72 h-72';
+  const ringSizes = deviceType === 'mobile' 
+    ? ['w-36 h-36', 'w-40 h-40', 'w-44 h-44']
+    : deviceType === 'tablet'
+    ? ['w-48 h-48', 'w-52 h-52', 'w-56 h-56']
+    : ['w-56 h-56', 'w-60 h-60', 'w-64 h-64'];
+  const butterflyContainerSize = deviceType === 'mobile' ? '120px' : deviceType === 'tablet' ? '160px' : '200px';
+  const butterflySizes = deviceType === 'mobile' ? [14, 12, 10] : deviceType === 'tablet' ? [17, 15, 13] : [20, 18, 16];
+  const sparkleSize = deviceType === 'mobile' ? '3px' : deviceType === 'tablet' ? '4px' : '5px';
+
   return (
-    <div className="relative flex items-center justify-center animate-float" style={{ animationDelay: "0.2s" }}>
+    <div className="relative flex items-center justify-center animate-float touch-manipulation" style={{ animationDelay: "0.2s" }}>
       {/* Sparkle particles */}
       <div className="absolute inset-0 pointer-events-none">
         {[...Array(8)].map((_, i) => (
@@ -29,8 +44,8 @@ const VoiceOrb = ({ isActive, isSpeaking }: VoiceOrbProps) => {
             key={i}
             className="absolute rounded-full bg-white animate-sparkle"
             style={{
-              width: '5px',
-              height: '5px',
+              width: sparkleSize,
+              height: sparkleSize,
               left: `${15 + (i * 12)}%`,
               top: `${10 + (i % 4) * 25}%`,
               animationDelay: `${i * 0.25}s`,
@@ -52,7 +67,7 @@ const VoiceOrb = ({ isActive, isSpeaking }: VoiceOrbProps) => {
 
       {/* Middle glow with shimmer */}
       <div
-        className={`absolute w-64 h-64 rounded-full bg-gradient-radial from-orb-primary/50 to-transparent blur-2xl transition-all duration-300 ${
+        className={`absolute ${glowSize} rounded-full bg-gradient-radial from-orb-primary/50 to-transparent blur-2xl transition-all duration-300 ${
           isActive ? "animate-orb-glow animate-shimmer" : "opacity-40"
         }`}
       />
@@ -74,7 +89,7 @@ const VoiceOrb = ({ isActive, isSpeaking }: VoiceOrbProps) => {
 
       {/* Main orb - more translucent anime style */}
       <div
-        className={`relative w-48 h-48 rounded-full transition-all duration-500 backdrop-blur-sm ${
+        className={`relative ${orbSize} rounded-full transition-all duration-500 backdrop-blur-sm ${
           isActive ? "animate-orb-pulse" : ""
         }`}
         style={{
@@ -134,37 +149,37 @@ const VoiceOrb = ({ isActive, isSpeaking }: VoiceOrbProps) => {
       {/* Speaking indicator rings - anime style */}
       {isSpeaking && (
         <>
-          <div className="absolute w-56 h-56 rounded-full border-2 border-orb-primary/40 animate-ping" />
+          <div className={`absolute ${ringSizes[0]} rounded-full border-2 border-orb-primary/40 animate-ping`} />
           <div
-            className="absolute w-60 h-60 rounded-full border-2 border-orb-primary/30 animate-ping"
+            className={`absolute ${ringSizes[1]} rounded-full border-2 border-orb-primary/30 animate-ping`}
             style={{ animationDelay: "0.3s" }}
           />
           <div
-            className="absolute w-64 h-64 rounded-full border border-orb-primary/20 animate-ping"
+            className={`absolute ${ringSizes[2]} rounded-full border border-orb-primary/20 animate-ping`}
             style={{ animationDelay: "0.6s" }}
           />
         </>
       )}
 
       {/* Animated butterflies - orbiting around the orb */}
-      <div className="absolute inset-0 pointer-events-none" style={{ width: '200px', height: '200px', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
+      <div className="absolute inset-0 pointer-events-none" style={{ width: butterflyContainerSize, height: butterflyContainerSize, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <Butterfly 
-            size={20} 
+            size={butterflySizes[0]} 
             color="purple" 
             delay={0}
           />
         </div>
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <Butterfly 
-            size={18} 
+            size={butterflySizes[1]} 
             color="orange" 
             delay={1.3}
           />
         </div>
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <Butterfly 
-            size={16} 
+            size={butterflySizes[2]} 
             color="white" 
             delay={2.6}
           />

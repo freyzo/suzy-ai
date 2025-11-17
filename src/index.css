@@ -279,3 +279,49 @@ html {
 * {
   touch-action: manipulation;
 }
+
+/* Responsive touch targets - ensure minimum 44px for accessibility */
+@media (max-width: 767px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Prevent text selection on mobile for better touch experience */
+@media (max-width: 767px) {
+  * {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  
+  /* Better spacing for greasy fingers - increase gaps between interactive elements */
+  .gap-4 {
+    gap: 1rem;
+  }
+  
+  .gap-3 {
+    gap: 0.875rem;
+  }
+  
+  /* Ensure buttons have enough padding for touch */
+  button {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Tablet responsive adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Medium touch targets for tablet */
+  button, a, [role="button"] {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
