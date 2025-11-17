@@ -57,7 +57,7 @@ export default function CharacterDisplay({
 
   return (
     <div
-      className="character-container flex-1 min-w-[50%] h-full w-full relative max-md:min-w-full touch-manipulation"
+      className="character-container flex-1 min-w-[50%] h-full w-full relative max-md:min-w-full touch-manipulation min-h-0 min-w-0"
       style={{
         filter: hairColor === 'original' ? 'none' : getHairColorFilter(hairColor),
         transition: 'filter 0.3s ease',
@@ -98,7 +98,7 @@ export default function CharacterDisplay({
           )}
         </Screen>
       ) : (
-        <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+        <div className="relative w-full h-full flex items-center justify-center overflow-hidden min-h-[200px] min-w-[200px]">
           <div 
             className="relative w-full h-full flex items-end justify-center" 
             style={{
@@ -110,13 +110,18 @@ export default function CharacterDisplay({
             <img
               src="/assets/live2d/models/hiyori_free_zh/avatar.png"
               alt="Suzy Character"
-              className="w-auto h-[95vh] max-h-[95vh] max-w-[50vw] max-md:max-w-[90vw] object-contain object-bottom pointer-events-auto select-none z-10"
+              className="w-auto h-[95vh] max-h-[95vh] max-w-[50vw] max-md:max-w-[90vw] max-md:h-[80vh] object-contain object-bottom pointer-events-auto select-none z-10"
               style={{
                 imageRendering: 'auto',
                 transform: `scale(${scale})`,
-                minHeight: '600px',
+                minHeight: '200px',
+                maxHeight: '100%',
               }}
-              onError={() => setUseLive2D(false)}
+              onError={(e) => {
+                console.error('Failed to load character image');
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
             />
           </div>
         </div>

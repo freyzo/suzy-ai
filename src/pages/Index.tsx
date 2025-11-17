@@ -184,7 +184,7 @@ const Index = () => {
 
   const [isDark, setIsDark] = useState(false);
   const [mouthOpenSize, setMouthOpenSize] = useState(0);
-  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>('Suzy');
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>('hiyori');
 
   // Initialize chromatic hue and detect dark mode (from airi)
   useEffect(() => {
@@ -259,11 +259,11 @@ const Index = () => {
             : 'color-mix(in srgb, oklch(95% calc(var(--chromatic-chroma-50) * 0.3) var(--chromatic-hue)) 40%, transparent)'
         }
       >
-        <div className="relative flex flex-col z-[2] h-[100dvh] w-[100vw] overflow-hidden">
+        <div className="relative flex flex-col z-[2] h-[100dvh] w-[100vw] overflow-hidden min-h-0">
           {/* Main content area */}
-          <div className="relative flex flex-1 flex-row gap-y-0 gap-x-2 max-md:flex-col">
+          <div className="relative flex flex-1 flex-row gap-y-0 gap-x-2 max-md:flex-col min-h-0 min-w-0">
             {/* Character display - takes up left side */}
-            <div className="flex-1 min-w-[50%] h-full relative max-md:min-w-full">
+            <div className="flex-1 min-w-[50%] h-full relative max-md:min-w-full min-h-0 min-w-0 overflow-visible">
               <CharacterDisplay
                 paused={paused}
                 focusAt={mousePosition}
@@ -271,6 +271,7 @@ const Index = () => {
                 yOffset="0%"
                 scale={characterScale}
                 mouthOpenSize={mouthOpenSize}
+                characterId={selectedCharacter}
               />
             </div>
 

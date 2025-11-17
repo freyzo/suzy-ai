@@ -23,7 +23,7 @@ export default function Live2DCanvas({
   const pixiAppRef = useRef<Application | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current || pixiAppRef.current) return;
+    if (!containerRef.current || pixiAppRef.current || width <= 0 || height <= 0) return;
 
     async function initLive2DPixiStage(parent: HTMLDivElement) {
       setPixiAppReady(false);
@@ -69,8 +69,8 @@ export default function Live2DCanvas({
   }, [width, height, resolution]);
 
   return (
-    <div ref={containerRef} className="h-full w-full">
-      {pixiAppReady && pixiAppRef.current && children?.(pixiAppRef.current)}
+    <div ref={containerRef} className="h-full w-full min-h-[200px] min-w-[200px]">
+      {pixiAppReady && pixiAppRef.current && width > 0 && height > 0 && children?.(pixiAppRef.current)}
     </div>
   );
 }
