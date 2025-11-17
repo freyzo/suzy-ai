@@ -17,6 +17,7 @@ interface Live2DModelProps {
   scale?: number;
   mouthOpenSize?: number;
   onModelLoaded?: () => void;
+  onModelError?: () => void;
 }
 
 export default function Live2DModelComponent({
@@ -33,6 +34,7 @@ export default function Live2DModelComponent({
   scale = 1,
   mouthOpenSize = 0,
   onModelLoaded,
+  onModelError,
 }: Live2DModelProps) {
   const modelRef = useRef<Live2DModel | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,6 +81,7 @@ export default function Live2DModelComponent({
         if (typeof window !== 'undefined' && !(window as any).Live2DCubismCore) {
           console.warn('Live2D SDK not loaded. Make sure the script is included in index.html');
           setLoading(false);
+          onModelError?.();
           return;
         }
 
@@ -91,6 +94,7 @@ export default function Live2DModelComponent({
         } else {
           console.warn('No Live2D model source provided');
           setLoading(false);
+          onModelError?.();
           return;
         }
 
@@ -119,6 +123,7 @@ export default function Live2DModelComponent({
         onModelLoaded?.();
       } catch (error) {
         console.error('Failed to load Live2D model:', error);
+        onModelError?.();
       } finally {
         setLoading(false);
       }

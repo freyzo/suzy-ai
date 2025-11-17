@@ -40,8 +40,9 @@ export default function CharacterDisplay({
   mouthOpenSize = 0,
   characterId = 'hiyori',
 }: CharacterDisplayProps) {
-  const [hairColor, setHairColor] = useState<HairColor>('platinum-blonde');
+  const [hairColor, setHairColor] = useState<HairColor>('original');
   const [useLive2D, setUseLive2D] = useState(true);
+  const [modelLoadError, setModelLoadError] = useState(false);
   
   // Get character model source
   const character = CHARACTERS.find(c => c.id === characterId) || CHARACTERS[0];
@@ -64,7 +65,7 @@ export default function CharacterDisplay({
       }}
       onClick={toggleHairColor}
     >
-      {useLive2D ? (
+      {useLive2D && !modelLoadError ? (
         <Screen key={characterId}>
           {(width, height) => (
             <Live2DCanvas width={width} height={height} resolution={2}>
@@ -84,6 +85,12 @@ export default function CharacterDisplay({
                   onModelLoaded={() => {
                     console.log('Live2D model loaded:', character.name);
                     setUseLive2D(true);
+                    setModelLoadError(false);
+                  }}
+                  onModelError={() => {
+                    console.warn('Live2D model failed to load, falling back to static image');
+                    setModelLoadError(true);
+                    setUseLive2D(false);
                   }}
                 />
               )}
