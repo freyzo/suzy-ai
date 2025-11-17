@@ -1,0 +1,15 @@
+[project]
+name = "freya-voice-chat"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[functions.elevenlabs-session]
+verify_jwt = false

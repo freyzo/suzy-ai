@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="hairGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8F4F8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D4E8F0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="url(#bgGradient)" stroke="#BFD4E0" stroke-width="2"/>
+  
+  <!-- Hair (platinum blonde) -->
+  <path d="M 30 35 Q 25 25, 30 20 Q 35 15, 40 20 Q 45 18, 50 20 Q 55 18, 60 20 Q 65 15, 70 20 Q 75 25, 70 35" 
+        fill="url(#hairGradient)" stroke="#FFD700" stroke-width="1"/>
+  
+  <!-- Face circle -->
+  <circle cx="50" cy="50" r="18" fill="#FFE5D9" stroke="#FFD4C4" stroke-width="1"/>
+  
+  <!-- Left eye -->
+  <ellipse cx="43" cy="48" rx="3" ry="4" fill="#6B46C1"/>
+  <circle cx="43" cy="47" r="1.5" fill="#FFFFFF"/>
+  
+  <!-- Right eye -->
+  <ellipse cx="57" cy="48" rx="3" ry="4" fill="#6B46C1"/>
+  <circle cx="57" cy="47" r="1.5" fill="#FFFFFF"/>
+  
+  <!-- Blush -->
+  <ellipse cx="38" cy="55" rx="2.5" ry="2" fill="#FFB6C1" opacity="0.6"/>
+  <ellipse cx="62" cy="55" rx="2.5" ry="2" fill="#FFB6C1" opacity="0.6"/>
+  
+  <!-- Smile -->
+  <path d="M 42 58 Q 50 62, 58 58" stroke="#FF8C94" stroke-width="2" fill="none" stroke-linecap="round"/>
+  
+  <!-- Bow/ribbon -->
+  <circle cx="50" cy="30" r="4" fill="#FF6B9D"/>
+  <path d="M 46 30 L 44 28 L 46 26 L 48 28 Z" fill="#FF6B9D"/>
+  <path d="M 54 30 L 56 28 L 54 26 L 52 28 Z" fill="#FF6B9D"/>
+</svg>
+
