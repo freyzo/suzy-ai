@@ -237,6 +237,7 @@ const Index = () => {
     eyeBlinkRate: 0.5,
     eyebrowPosition: 0,
     headTilt: 0,
+    colorTint: undefined,
   };
 
   // Environment system
