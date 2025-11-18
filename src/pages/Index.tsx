@@ -263,12 +263,15 @@ const Index = () => {
 
   // Start/stop audio visualizer with conversation
   useEffect(() => {
-    if (isActive && !audioVisualizer?.isActive) {
-      audioVisualizer?.start()?.catch(console.error);
-    } else if (!isActive && audioVisualizer?.isActive) {
-      audioVisualizer?.stop();
+    if (!audioVisualizer) return;
+    
+    if (isActive && !audioVisualizer.isActive) {
+      audioVisualizer.start().catch(console.error);
+    } else if (!isActive && audioVisualizer.isActive) {
+      audioVisualizer.stop();
     }
-  }, [isActive, audioVisualizer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive]); // Only depend on isActive, not the whole audioVisualizer object
 
   // Initialize chromatic hue and detect dark mode (from airi)
   useEffect(() => {
