@@ -315,26 +315,26 @@ const Index = () => {
 
       // Check if current emotion is sad - slow down animations
       const isSadEmotion = currentEmotion === 'sad';
-      const speedMultiplier = isSadEmotion ? 0.5 : 1; // Slow down by 50% for sad
+      const speedMultiplier = isSadEmotion ? 0.3 : 0.6; // Much slower overall, even slower for sad
 
       if (isSpeaking) {
-        // When speaking: more dynamic lip-sync movement
-        mouthPhase += deltaTime * 0.012 * speedMultiplier; // Slower for sad emotion
+        // When speaking: more dynamic lip-sync movement (slower)
+        mouthPhase += deltaTime * 0.006 * speedMultiplier; // Reduced from 0.012
         const baseSize = 28;
-        const variation = Math.sin(mouthPhase) * 18; // Vary between 10-46
-        const randomVariation = (Math.random() - 0.5) * 10; // Add randomness for natural movement
+        const variation = Math.sin(mouthPhase) * 12; // Reduced from 18
+        const randomVariation = (Math.random() - 0.5) * 6; // Reduced from 10
         setMouthOpenSize(Math.max(12, Math.min(55, baseSize + variation + randomVariation)));
       } else if (isActive || isConnecting) {
-        // When active/connecting but not speaking: listening/idle movement
-        mouthPhase += deltaTime * 0.004 * speedMultiplier; // Slower for sad emotion
+        // When active/connecting but not speaking: listening/idle movement (slower)
+        mouthPhase += deltaTime * 0.002 * speedMultiplier; // Reduced from 0.004
         const baseSize = 4;
-        const variation = Math.sin(mouthPhase) * 3;
+        const variation = Math.sin(mouthPhase) * 2; // Reduced from 3
         setMouthOpenSize(Math.max(1, Math.min(10, baseSize + variation)));
       } else {
-        // When inactive: very subtle breathing-like movement
-        mouthPhase += deltaTime * 0.002 * speedMultiplier; // Slower for sad emotion
+        // When inactive: very subtle breathing-like movement (slower)
+        mouthPhase += deltaTime * 0.001 * speedMultiplier; // Reduced from 0.002
         const baseSize = 0.5;
-        const variation = Math.sin(mouthPhase * 0.5) * 1;
+        const variation = Math.sin(mouthPhase * 0.5) * 0.5; // Reduced from 1
         setMouthOpenSize(Math.max(0, Math.min(3, baseSize + variation)));
       }
 

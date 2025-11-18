@@ -167,7 +167,101 @@ export default function Live2DModelComponent({
     }
   }, [width, height, xOffset, yOffset, scale]);
 
-  // Update focus
+  // Dynamic head movement - turn left/right naturally like Grok companions
+  const headMovementRef = useRef({ 
+    phase: 0, 
+    targetAngle: 0, 
+    currentAngle: 0, 
+    baseTilt: 0,
+    lastIdleMotion: Date.now(),
+    idleMotionPhase: 0
+  });
+  
+  useEffect(() => {
+    if (!modelRef.current) return;
+    
+    let animationFrame: number;
+    let lastTime = 0;
+    
+    const animateHead = (currentTime: number) => {
+      if (!lastTime) lastTime = currentTime;
+      const deltaTime = Math.min(currentTime - lastTime, 33); // Cap at 33ms
+      lastTime = currentTime;
+      
+      const coreModel = (modelRef.current?.internalModel as any)?.coreModel;
+      if (!coreModel) {
+        animationFrame = requestAnimationFrame(animateHead);
+        return;
+      }
+      
+      const movement = headMovementRef.current;
+      movement.phase += deltaTime * 0.0006; // Slower, more natural movement
+      movement.idleMotionPhase += deltaTime;
+      
+      // Generate smooth left/right head turns (like Grok companions)
+      const baseAngle = Math.sin(movement.phase) * 10; // -10 to +10 degrees (wider range)
+      const randomDrift = Math.sin(movement.phase * 0.25) * 4; // Additional slow drift
+      movement.targetAngle = baseAngle + randomDrift;
+      
+      // Smooth interpolation to target angle
+      movement.currentAngle += (movement.targetAngle - movement.currentAngle) * 0.03; // Slower interpolation
+      
+      // Apply mouse focus if enabled, otherwise use idle movement
+      if (!disableFocusAt && focusAt.x !== 0 && focusAt.y !== 0) {
+        // Convert mouse position to head angle (-20 to +20 degrees)
+        const normalizedX = (focusAt.x / window.innerWidth) * 2 - 1; // -1 to 1
+        const mouseAngle = normalizedX * 20;
+        movement.currentAngle += (mouseAngle - movement.currentAngle) * 0.08; // Slower mouse follow
+      }
+      
+      // Periodic idle motions (like Grok companions) - subtle body shifts every 8-12 seconds
+      const timeSinceLastMotion = currentTime - movement.lastIdleMotion;
+      if (timeSinceLastMotion > 8000 + Math.random() * 4000) {
+        movement.lastIdleMotion = currentTime;
+        movement.idleMotionPhase = 0;
+      }
+      
+      try {
+        // Head rotation (left/right) - natural turning like Grok companions
+        coreModel.setParameterValueById('ParamAngleZ', movement.currentAngle);
+        
+        // Subtle head tilt based on movement (will be blended with emotion in mouth effect)
+        const tilt = Math.sin(movement.phase * 0.4) * 2.5; // Slightly more tilt
+        // Store base tilt for blending with emotion animations
+        headMovementRef.current.baseTilt = tilt;
+        
+        // Body sway (subtle left/right movement) - makes it feel alive
+        let bodySway = Math.sin(movement.phase * 0.3) * 2; // Increased sway
+        
+        // Periodic idle motion - subtle shifts
+        if (movement.idleMotionPhase < 2000) {
+          const idleIntensity = Math.sin((movement.idleMotionPhase / 2000) * Math.PI);
+          const idleShift = idleIntensity * 3;
+          bodySway += idleShift;
+        }
+        
+        coreModel.setParameterValueById('ParamBodyAngleZ', bodySway);
+        
+        // Subtle body angle Y (forward/backward lean) - breathing-like
+        const bodyLean = Math.sin(movement.phase * 0.25) * 1.5;
+        coreModel.setParameterValueById('ParamBodyAngleY', bodyLean);
+      } catch (e) {
+        // Parameters might not exist, ignore
+      }
+      
+      animationFrame = requestAnimationFrame(animateHead);
+    };
+    
+    animationFrame = requestAnimationFrame(animateHead);
+    
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [disableFocusAt, focusAt]);
+  
+  // Update focus (keep for compatibility)
   useEffect(() => {
     if (modelRef.current && !disableFocusAt) {
       modelRef.current.focus(focusAt.x, focusAt.y);
@@ -196,9 +290,12 @@ export default function Live2DModelComponent({
           }
           
           try {
-            // Head tilt based on emotion
-            const headAngleX = emotionAnimation.headTilt * 15; // degrees
-            coreModel.setParameterValueById('ParamAngleX', headAngleX);
+            // Head tilt based on emotion (combined with dynamic movement)
+            const emotionTilt = emotionAnimation.headTilt * 15; // degrees
+            // Blend emotion tilt with dynamic base tilt
+            const baseTilt = headMovementRef.current.baseTilt || 0;
+            const blendedTilt = emotionTilt * 0.6 + baseTilt * 0.4; // Blend emotion with dynamic movement
+            coreModel.setParameterValueById('ParamAngleX', blendedTilt);
           } catch (e) {
             // Parameter might not exist, ignore
           }
