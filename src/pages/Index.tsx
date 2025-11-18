@@ -25,6 +25,7 @@ const Index = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const isMobile = useIsMobile();
   const isProcessingClick = useRef(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Track mouse position
   useEffect(() => {
@@ -106,6 +107,7 @@ const Index = () => {
     }
 
     isProcessingClick.current = true;
+    setIsProcessing(true);
 
     try {
       // Check if we should stop (connected)
@@ -206,6 +208,7 @@ const Index = () => {
       // Reset processing flag after a short delay to prevent rapid clicks
       setTimeout(() => {
         isProcessingClick.current = false;
+        setIsProcessing(false);
       }, 300);
     }
   };
@@ -399,7 +402,7 @@ const Index = () => {
                     <MicrophoneButton
                       isActive={isActive}
                       onClick={handleMicClick}
-                      disabled={isConnecting || isProcessingClick.current}
+                      disabled={isConnecting || isProcessing}
                     />
                     <p className="text-sm text-foreground/80 max-lg:text-xs">
                       {isConnecting
@@ -467,7 +470,7 @@ const Index = () => {
                   <MicrophoneButton
                     isActive={isActive}
                     onClick={handleMicClick}
-                    disabled={isConnecting || isProcessingClick.current}
+                    disabled={isConnecting || isProcessing}
                   />
                   <VoiceOrb isActive={isActive} isSpeaking={isSpeaking} />
                 </div>
