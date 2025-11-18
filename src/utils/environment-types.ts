@@ -79,3 +79,4 @@ export function getSceneFromEmotion(emotion: string): SceneType {
   return emotionSceneMap[emotion] || 'office';
 }
 
+
