@@ -23,6 +23,10 @@ const Index = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [paused, setPaused] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mouthOpenSize, setMouthOpenSize] = useState(0);
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>('hiyori');
+  const [selectedScene, setSelectedScene] = useState<SceneType | null>(null);
+  const [isDark, setIsDark] = useState(false);
   const isMobile = useIsMobile();
   const isProcessingClick = useRef(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -219,11 +223,6 @@ const Index = () => {
   // Character position and scale (responsive)
   const characterPosition = { x: isMobile ? 0 : -10, y: 0 };
   const characterScale = isMobile ? 0.85 : 1;
-
-  const [isDark, setIsDark] = useState(false);
-  const [mouthOpenSize, setMouthOpenSize] = useState(0);
-  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>('hiyori');
-  const [selectedScene, setSelectedScene] = useState<SceneType | null>(null); // null = auto, SceneType = manual
   
   // Emotion recognition system
   const emotionManager = useEmotionManager({
