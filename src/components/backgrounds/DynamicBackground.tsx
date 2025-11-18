@@ -19,49 +19,10 @@ export default function DynamicBackground({
   const [transitionProgress, setTransitionProgress] = useState(1);
 
   useEffect(() => {
-    // If scene is explicitly provided, use it (manual selection)
-    if (scene) {
-      if (scene !== currentScene) {
-        setTransitionProgress(0);
-        const duration = 2000;
-        const startTime = Date.now();
-
-        const animate = () => {
-          const elapsed = Date.now() - startTime;
-          const progress = Math.min(1, elapsed / duration);
-          setTransitionProgress(progress);
-
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          } else {
-            setCurrentScene(scene);
-            setTransitionProgress(1);
-          }
-        };
-
-        requestAnimationFrame(animate);
-      }
-      return;
-    }
-
-    // Otherwise, map emotion to scene (automatic)
-    const emotionSceneMap: Record<EmotionType, SceneType> = {
-      happy: 'cafe',
-      excited: 'studio',
-      calm: 'nature',
-      thoughtful: 'ocean',
-      sad: 'forest',
-      angry: 'space',
-      surprised: 'studio',
-      neutral: 'forest',
-      confused: 'ocean',
-    };
-
-    const targetScene = emotionSceneMap[emotion] || 'forest';
-    
-    if (targetScene !== currentScene) {
+    // Always use the provided scene (no emotion-based auto-switching to prevent jumping)
+    if (scene && scene !== currentScene) {
       setTransitionProgress(0);
-      const duration = 2000; // 2 second transition
+      const duration = 2000;
       const startTime = Date.now();
 
       const animate = () => {
@@ -72,14 +33,14 @@ export default function DynamicBackground({
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
-          setCurrentScene(targetScene);
+          setCurrentScene(scene);
           setTransitionProgress(1);
         }
       };
 
       requestAnimationFrame(animate);
     }
-  }, [emotion, scene, currentScene]);
+  }, [scene, currentScene]);
 
   const sceneConfig = SCENE_CONFIGS[currentScene];
 

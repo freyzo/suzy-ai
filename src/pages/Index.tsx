@@ -349,8 +349,8 @@ const Index = () => {
   // Mood lighting based on emotion
   const moodColor = emotionAnimation?.colorTint || environment?.particleColors?.[0] || '#4ecdc4';
 
-  // Use manual scene selection if set, otherwise use emotion-based auto selection
-  const backgroundScene = selectedScene || undefined;
+  // Use manual scene selection if set, otherwise use stable default (not emotion-based to prevent jumping)
+  const backgroundScene = selectedScene || 'forest';
 
   return (
     <DynamicBackground emotion={currentEmotion} scene={backgroundScene}>
@@ -382,7 +382,7 @@ const Index = () => {
           {/* Background selector - top right */}
           <div className="absolute top-4 right-4 z-20 max-md:top-2 max-md:right-2">
             <BackgroundSelector
-              selectedScene={selectedScene || environment?.environmentState?.scene || 'forest'}
+              selectedScene={selectedScene || 'forest'}
               onSceneChange={(scene) => {
                 setSelectedScene(scene);
               }}
