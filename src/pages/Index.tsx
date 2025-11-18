@@ -348,8 +348,8 @@ const Index = () => {
           />
           
           <div className="relative flex flex-col z-[2] h-[100dvh] w-[100vw] overflow-hidden min-h-0">
-          {/* Background selector - top left */}
-          <div className="absolute top-4 left-4 z-20 max-md:top-2 max-md:left-2">
+          {/* Background selector - top right */}
+          <div className="absolute top-4 right-4 z-20 max-md:top-2 max-md:right-2">
             <BackgroundSelector
               selectedScene={selectedScene || environment.environmentState.scene}
               onSceneChange={(scene) => {
