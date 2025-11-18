@@ -44,19 +44,6 @@ const Index = () => {
     onConnect: () => {
       console.log("Connected to ElevenLabs");
       setIsConnecting(false);
-      
-      // Resume audio context if suspended (browser autoplay policy)
-      if (typeof window !== 'undefined' && window.AudioContext) {
-        const audioContext = new AudioContext();
-        if (audioContext.state === 'suspended') {
-          audioContext.resume().then(() => {
-            console.log("Audio context resumed");
-          }).catch(err => {
-            console.warn("Failed to resume audio context:", err);
-          });
-        }
-      }
-      
       toast({
         title: "Connected",
         description: "Ready to chat with Suzy",
@@ -78,12 +65,6 @@ const Index = () => {
     },
     onMessage: (message) => {
       console.log("Message received:", message);
-    },
-    onAudio: (base64Audio: string) => {
-      console.log("Audio chunk received:", base64Audio?.length || 0, "chars");
-    },
-    onUtterance: (utterance: string) => {
-      console.log("Utterance:", utterance);
     },
   });
 
@@ -127,19 +108,6 @@ const Index = () => {
     // Prevent clicks during connection phase
     if (isConnecting && conversation.status !== 'connected') {
       return;
-    }
-
-    // Resume audio context on user interaction (required for browser autoplay policy)
-    if (typeof window !== 'undefined' && window.AudioContext) {
-      try {
-        const audioContext = new AudioContext();
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-          console.log("Audio context resumed on user interaction");
-        }
-      } catch (err) {
-        console.warn("Failed to resume audio context:", err);
-      }
     }
 
     isProcessingClick.current = true;
