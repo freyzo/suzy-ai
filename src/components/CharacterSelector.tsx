@@ -1,11 +1,13 @@
 import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type CharacterId = 'hiyori' | 'character2';
+export type CharacterId = 'hiyori' | 'character2' | 'vrm-character';
+export type CharacterType = 'live2d' | 'vrm';
 
 export interface Character {
   id: CharacterId;
   name: string;
+  type: CharacterType;
   modelSrc: string;
   previewImage?: string;
 }
@@ -14,14 +16,23 @@ export const CHARACTERS: Character[] = [
   {
     id: 'hiyori',
     name: 'Hiyori',
+    type: 'live2d',
     modelSrc: '/assets/live2d/models/hiyori_pro_zh.zip',
     previewImage: '/assets/live2d/models/hiyori_pro_zh/character-preview.png',
   },
   {
     id: 'character2',
     name: 'Character 2',
+    type: 'live2d',
     modelSrc: '/assets/live2d/models/hiyori_pro_zh.zip', // Using same model for now, can be changed later
     previewImage: '/assets/live2d/models/hiyori_pro_zh/character-preview.png',
+  },
+  {
+    id: 'vrm-character',
+    name: 'VRM Character',
+    type: 'vrm',
+    modelSrc: '/assets/vrm/models/AvatarSample-B/AvatarSample_B.vrm', // Default VRM model path
+    previewImage: undefined,
   },
 ];
 

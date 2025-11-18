@@ -1,9 +1,26 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import Screen from './Live2D/Screen';
 import Live2DCanvas from './Live2D/Live2DCanvas';
 import Live2DModelComponent from './Live2D/Live2DModel';
 import { CharacterId, CHARACTERS } from './CharacterSelector';
 import { EmotionAnimation } from '@/utils/emotion-types';
+
+// Lazy load VRM components to prevent breaking if VRM dependencies fail
+const VRMScene = lazy(() => 
+  import('./VRM/VRMScene').catch((error) => {
+    console.warn('VRM Scene not available:', error);
+    return { 
+      default: () => (
+        <div className="w-full h-full flex items-center justify-center text-foreground/50">
+          <div className="text-center">
+            <p className="text-sm">3D Character not available</p>
+            <p className="text-xs mt-2">Please use Live2D characters</p>
+          </div>
+        </div>
+      )
+    };
+  })
+);
 
 interface CharacterDisplayProps {
   paused?: boolean;
@@ -32,6 +49,7 @@ export default function CharacterDisplay({
   // Get character model source
   const character = CHARACTERS.find(c => c.id === characterId) || CHARACTERS[0];
   const modelSrc = character.modelSrc;
+  const isVRM = character.type === 'vrm';
 
   return (
     <div
@@ -42,7 +60,22 @@ export default function CharacterDisplay({
           : undefined,
       }}
     >
-      {useLive2D && !modelLoadError ? (
+      {isVRM ? (
+        <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-foreground/50">Loading 3D character...</div>}>
+          <VRMScene
+            modelSrc={modelSrc}
+            paused={paused}
+            focusAt={focusAt}
+            emotionAnimation={emotionAnimation}
+            onModelReady={() => {
+              console.log('VRM model loaded:', character.name);
+            }}
+            onError={(error) => {
+              console.error('VRM model failed to load:', error);
+            }}
+          />
+        </Suspense>
+      ) : useLive2D && !modelLoadError ? (
         <Screen key={characterId}>
           {(width, height) => (
             <Live2DCanvas width={width} height={height} resolution={2}>

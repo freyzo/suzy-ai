@@ -4,14 +4,19 @@ import MicrophoneButton from "@/components/MicrophoneButton";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import AnimatedParticles from "@/components/backgrounds/AnimatedParticles";
+import VoiceResponsiveParticles from "@/components/backgrounds/VoiceResponsiveParticles";
+import VoiceVisualizer from "@/components/backgrounds/VoiceVisualizer";
+import DynamicBackground from "@/components/backgrounds/DynamicBackground";
+import BackgroundSelector from "@/components/backgrounds/BackgroundSelector";
 import Cross from "@/components/backgrounds/Cross";
 import AnimatedWave from "@/components/backgrounds/AnimatedWave";
-import ImageBackground from "@/components/backgrounds/ImageBackground";
 import CharacterDisplay from "@/components/CharacterDisplay";
 import CharacterSelector, { CharacterId } from "@/components/CharacterSelector";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEmotionManager } from "@/hooks/use-emotion-manager";
+import { useEnvironment } from "@/hooks/use-environment";
+import { useAudioVisualizer } from "@/hooks/use-audio-visualizer";
+import { SceneType, SCENE_CONFIGS } from "@/utils/environment-types";
 
 const Index = () => {
   const { toast } = useToast();
@@ -200,6 +205,7 @@ const Index = () => {
   const [isDark, setIsDark] = useState(false);
   const [mouthOpenSize, setMouthOpenSize] = useState(0);
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>('hiyori');
+  const [selectedScene, setSelectedScene] = useState<SceneType | null>(null); // null = auto, SceneType = manual
   
   // Emotion recognition system
   const emotionManager = useEmotionManager({
@@ -215,6 +221,36 @@ const Index = () => {
     eyebrowPosition: 0,
     headTilt: 0,
   };
+
+  // Environment system
+  const currentEmotion = emotionManager?.emotionState?.current?.emotion || 'neutral';
+  const environment = useEnvironment({
+    currentEmotion,
+    isActive,
+    isSpeaking,
+  });
+
+  // Get particle colors from selected scene or current environment
+  const particleColors = selectedScene 
+    ? SCENE_CONFIGS[selectedScene].particleColors 
+    : environment.particleColors;
+
+  // Audio visualizer
+  const audioVisualizer = useAudioVisualizer({
+    enabled: isActive,
+    fftSize: 256,
+    smoothingTimeConstant: 0.8,
+    updateInterval: 50,
+  });
+
+  // Start/stop audio visualizer with conversation
+  useEffect(() => {
+    if (isActive && !audioVisualizer.isActive) {
+      audioVisualizer.start().catch(console.error);
+    } else if (!isActive && audioVisualizer.isActive) {
+      audioVisualizer.stop();
+    }
+  }, [isActive]);
 
   // Initialize chromatic hue and detect dark mode (from airi)
   useEffect(() => {
@@ -279,17 +315,49 @@ const Index = () => {
     };
   }, [isSpeaking, isActive, isConnecting]);
 
+  // Mood lighting based on emotion
+  const moodColor = emotionAnimation?.colorTint || environment.particleColors[0] || '#4ecdc4';
+
+  // Use manual scene selection if set, otherwise use emotion-based auto selection
+  const backgroundScene = selectedScene || undefined;
+
   return (
-    <ImageBackground imageUrl="/fairy-forest.e17cbc2774.ko-fi.com (1).png">
-      <AnimatedWave
-        className="widgets top-widgets"
-        fillColor={
-          isDark
-            ? 'oklch(35% calc(var(--chromatic-chroma) * 0.3) var(--chromatic-hue) / 0.4)'
-            : 'color-mix(in srgb, oklch(95% calc(var(--chromatic-chroma-50) * 0.3) var(--chromatic-hue)) 40%, transparent)'
-        }
+    <DynamicBackground emotion={currentEmotion} scene={backgroundScene}>
+      <VoiceResponsiveParticles
+        particleCount={80}
+        colors={particleColors}
+        baseSpeed={0.5}
+        audioVolume={audioVisualizer.volume}
+        frequencyData={audioVisualizer.frequencyData}
       >
-        <div className="relative flex flex-col z-[2] h-[100dvh] w-[100vw] overflow-hidden min-h-0">
+        <AnimatedWave
+          className="widgets top-widgets"
+          fillColor={
+            isDark
+              ? `oklch(35% calc(var(--chromatic-chroma) * 0.3) var(--chromatic-hue) / 0.4)`
+              : `color-mix(in srgb, ${moodColor}40 40%, transparent)`
+          }
+        >
+          {/* Mood lighting overlay */}
+          <div
+            className="fixed inset-0 pointer-events-none transition-opacity duration-1000 z-[1]"
+            style={{
+              background: `radial-gradient(circle at 50% 50%, ${moodColor}20 0%, transparent 70%)`,
+              opacity: isActive ? 0.6 : 0.2,
+            }}
+          />
+          
+          <div className="relative flex flex-col z-[2] h-[100dvh] w-[100vw] overflow-hidden min-h-0">
+          {/* Background selector - top left */}
+          <div className="absolute top-4 left-4 z-20 max-md:top-2 max-md:left-2">
+            <BackgroundSelector
+              selectedScene={selectedScene || environment.environmentState.scene}
+              onSceneChange={(scene) => {
+                setSelectedScene(scene);
+              }}
+            />
+          </div>
+
           {/* Main content area */}
           <div className="relative flex flex-1 flex-row gap-y-0 gap-x-2 max-md:flex-col min-h-0 min-w-0">
             {/* Character display - takes up left side */}
@@ -336,6 +404,20 @@ const Index = () => {
                   </div>
                 </div>
                 
+                {/* Voice Visualizer */}
+                {isActive && audioVisualizer.frequencyData.length > 0 && (
+                  <div className="mt-4 flex justify-center">
+                    <VoiceVisualizer
+                      frequencyData={audioVisualizer.frequencyData}
+                      volume={audioVisualizer.volume}
+                      width={300}
+                      height={80}
+                      barCount={32}
+                      color={moodColor}
+                    />
+                  </div>
+                )}
+                
                 {/* Emotion indicator */}
                 {isActive && emotionManager?.emotionState?.current?.emotion !== 'neutral' && (
                   <div className="mt-2 px-4 py-2 bg-card/40 backdrop-blur-md border border-border/50 rounded-lg text-center animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -345,6 +427,9 @@ const Index = () => {
                       <span className="text-foreground/50">
                         ({Math.round((emotionManager?.emotionState?.current?.intensity || 0) * 100)}%)
                       </span>
+                    </p>
+                    <p className="text-xs text-foreground/50 mt-1">
+                      Scene: <span className="font-semibold capitalize">{environment.environmentState.scene}</span>
                     </p>
                   </div>
                 )}
@@ -387,7 +472,8 @@ const Index = () => {
           </div>
         </div>
       </AnimatedWave>
-    </ImageBackground>
+      </VoiceResponsiveParticles>
+    </DynamicBackground>
   );
 };
 
