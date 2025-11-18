@@ -44,6 +44,14 @@ export default function Live2DModelComponent({
   const [loading, setLoading] = useState(false);
   const initialModelWidthRef = useRef(0);
   const initialModelHeightRef = useRef(0);
+  const walkingRef = useRef({
+    isWalking: false,
+    walkPhase: 0, // 0 = idle, 1 = walking left, 2 = walking back
+    walkProgress: 0,
+    lastWalkTime: Date.now(),
+    baseXOffset: 0,
+    currentXOffset: 0
+  });
 
   function parseOffset(offset: number | string, dimension: number): number {
     if (typeof offset === 'string' && offset.endsWith('%')) {
@@ -56,7 +64,10 @@ export default function Live2DModelComponent({
     if (!modelRef.current) return;
 
     const offsetFactor = 2.2;
-    const xOff = parseOffset(xOffset, width);
+    // Use walking offset if walking, otherwise use prop xOffset
+    const effectiveXOffset = walkingRef.current.isWalking 
+      ? walkingRef.current.currentXOffset 
+      : parseOffset(xOffset, width);
     const yOff = parseOffset(yOffset, height);
 
     const heightScale = (height * 0.95 / initialModelHeightRef.current * offsetFactor);
@@ -64,7 +75,7 @@ export default function Live2DModelComponent({
     const finalScale = Math.min(heightScale, widthScale) * scale;
 
     modelRef.current.scale.set(finalScale, finalScale);
-    modelRef.current.x = (width / 2) + xOff;
+    modelRef.current.x = (width / 2) + effectiveXOffset;
     modelRef.current.y = height + yOff;
   }
 
@@ -260,6 +271,99 @@ export default function Live2DModelComponent({
       }
     };
   }, [disableFocusAt, focusAt]);
+  
+  // Walking animation - walk left then back
+  useEffect(() => {
+    if (!modelRef.current || paused) return;
+    
+    let animationFrame: number;
+    let lastTime = 0;
+    
+    const animateWalking = (currentTime: number) => {
+      if (!lastTime) lastTime = currentTime;
+      const deltaTime = Math.min(currentTime - lastTime, 33);
+      lastTime = currentTime;
+      
+      const walking = walkingRef.current;
+      const timeSinceLastWalk = currentTime - walking.lastWalkTime;
+      
+      // Start walking every 15-20 seconds
+      if (!walking.isWalking && timeSinceLastWalk > 15000 + Math.random() * 5000) {
+        walking.isWalking = true;
+        walking.walkPhase = 1; // Start walking left
+        walking.walkProgress = 0;
+        walking.baseXOffset = parseOffset(xOffset, width);
+        
+        // Trigger walking motion if available
+        try {
+          const walkMotions = ['walk', 'walk_left', 'idle_01', 'idle_02'];
+          for (const motionName of walkMotions) {
+            try {
+              modelRef.current?.motion(motionName, MotionPriority.NORMAL);
+              break; // Use first available motion
+            } catch (e) {
+              // Try next motion
+            }
+          }
+        } catch (e) {
+          // No walking motion available, that's okay
+        }
+      }
+      
+      if (walking.isWalking) {
+        walking.walkProgress += deltaTime;
+        const walkDuration = 2000; // 2 seconds to walk left
+        const returnDuration = 2000; // 2 seconds to walk back
+        
+        if (walking.walkPhase === 1) {
+          // Walking left
+          const progress = Math.min(walking.walkProgress / walkDuration, 1);
+          const easeProgress = progress < 0.5 
+            ? 2 * progress * progress 
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2; // Ease in-out
+          
+          const walkDistance = -width * 0.15; // Walk 15% of screen width to the left
+          walking.currentXOffset = walking.baseXOffset + (walkDistance * easeProgress);
+          
+          if (progress >= 1) {
+            walking.walkPhase = 2;
+            walking.walkProgress = 0;
+          }
+        } else if (walking.walkPhase === 2) {
+          // Walking back
+          const progress = Math.min(walking.walkProgress / returnDuration, 1);
+          const easeProgress = progress < 0.5 
+            ? 2 * progress * progress 
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2; // Ease in-out
+          
+          const walkDistance = -width * 0.15;
+          walking.currentXOffset = walking.baseXOffset + (walkDistance * (1 - easeProgress));
+          
+          if (progress >= 1) {
+            // Finished walking, reset
+            walking.isWalking = false;
+            walking.walkPhase = 0;
+            walking.walkProgress = 0;
+            walking.currentXOffset = walking.baseXOffset;
+            walking.lastWalkTime = currentTime;
+          }
+        }
+        
+        // Update position
+        setScaleAndPosition();
+      }
+      
+      animationFrame = requestAnimationFrame(animateWalking);
+    };
+    
+    animationFrame = requestAnimationFrame(animateWalking);
+    
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [paused, xOffset, width, height]);
   
   // Update focus (keep for compatibility)
   useEffect(() => {
