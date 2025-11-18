@@ -3,6 +3,8 @@ import { Live2DFactory, Live2DModel, MotionPriority } from 'pixi-live2d-display/
 import { useEffect, useRef, useState } from 'react';
 import '../../utils/live2d-zip-loader';
 
+import { EmotionAnimation } from '@/utils/emotion-types';
+
 interface Live2DModelProps {
   app: Application;
   modelSrc?: string;
@@ -16,6 +18,7 @@ interface Live2DModelProps {
   yOffset?: number | string;
   scale?: number;
   mouthOpenSize?: number;
+  emotionAnimation?: EmotionAnimation;
   onModelLoaded?: () => void;
   onModelError?: () => void;
 }
@@ -33,6 +36,7 @@ export default function Live2DModelComponent({
   yOffset = 0,
   scale = 1,
   mouthOpenSize = 0,
+  emotionAnimation,
   onModelLoaded,
   onModelError,
 }: Live2DModelProps) {
@@ -159,28 +163,66 @@ export default function Live2DModelComponent({
     if (modelRef.current) {
       const coreModel = (modelRef.current.internalModel as any).coreModel;
       if (coreModel) {
+        // Use emotion animation if provided, otherwise use mouthOpenSize
+        const finalMouthSize = emotionAnimation?.mouthOpenSize ?? mouthOpenSize;
+        
         // Set main mouth open parameter
-        coreModel.setParameterValueById('ParamMouthOpenY', mouthOpenSize);
+        coreModel.setParameterValueById('ParamMouthOpenY', finalMouthSize);
         
-        // Try to set additional mouth parameters for more natural movement
-        try {
-          // Mouth form (smile/frown)
-          const mouthForm = Math.sin(mouthOpenSize * 0.1) * 0.3;
-          coreModel.setParameterValueById('ParamMouthForm', mouthForm);
-        } catch (e) {
-          // Parameter might not exist, ignore
-        }
-        
-        try {
-          // Mouth shape variation
-          const mouthShape = Math.cos(mouthOpenSize * 0.15) * 0.2;
-          coreModel.setParameterValueById('ParamMouthShape', mouthShape);
-        } catch (e) {
-          // Parameter might not exist, ignore
+        // Apply emotion-based parameters
+        if (emotionAnimation) {
+          try {
+            // Mouth form (smile/frown) based on emotion
+            const mouthForm = emotionAnimation.eyebrowPosition * 0.5;
+            coreModel.setParameterValueById('ParamMouthForm', mouthForm);
+          } catch (e) {
+            // Parameter might not exist, ignore
+          }
+          
+          try {
+            // Head tilt based on emotion
+            const headAngleX = emotionAnimation.headTilt * 15; // degrees
+            coreModel.setParameterValueById('ParamAngleX', headAngleX);
+          } catch (e) {
+            // Parameter might not exist, ignore
+          }
+          
+          try {
+            // Eyebrow position based on emotion
+            const eyebrowY = emotionAnimation.eyebrowPosition * 0.5;
+            coreModel.setParameterValueById('ParamBrowLY', eyebrowY);
+            coreModel.setParameterValueById('ParamBrowRY', eyebrowY);
+          } catch (e) {
+            // Parameter might not exist, ignore
+          }
+          
+          // Trigger emotion-based motion if available
+          if (emotionAnimation.bodyMotion && modelRef.current) {
+            try {
+              modelRef.current.motion(emotionAnimation.bodyMotion, MotionPriority.NORMAL);
+            } catch (e) {
+              // Motion might not exist, ignore
+            }
+          }
+        } else {
+          // Fallback to original behavior
+          try {
+            const mouthForm = Math.sin(mouthOpenSize * 0.1) * 0.3;
+            coreModel.setParameterValueById('ParamMouthForm', mouthForm);
+          } catch (e) {
+            // Parameter might not exist, ignore
+          }
+          
+          try {
+            const mouthShape = Math.cos(mouthOpenSize * 0.15) * 0.2;
+            coreModel.setParameterValueById('ParamMouthShape', mouthShape);
+          } catch (e) {
+            // Parameter might not exist, ignore
+          }
         }
       }
     }
-  }, [mouthOpenSize]);
+  }, [mouthOpenSize, emotionAnimation]);
 
   // Handle pause
   useEffect(() => {

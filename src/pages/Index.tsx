@@ -11,6 +11,7 @@ import ImageBackground from "@/components/backgrounds/ImageBackground";
 import CharacterDisplay from "@/components/CharacterDisplay";
 import CharacterSelector, { CharacterId } from "@/components/CharacterSelector";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEmotionManager } from "@/hooks/use-emotion-manager";
 
 const Index = () => {
   const { toast } = useToast();
@@ -109,6 +110,13 @@ const Index = () => {
         // Reset state
         setMouthOpenSize(0);
         
+        // Stop emotion recognition when conversation ends
+        try {
+          emotionManager.stop();
+        } catch (error) {
+          console.warn('Failed to stop emotion recognition:', error);
+        }
+        
         // Double check status after a brief delay
         setTimeout(() => {
           if (conversation.status === 'connected') {
@@ -148,6 +156,13 @@ const Index = () => {
       try {
         await ensureMicAccess();
 
+        // Start emotion recognition when conversation starts
+        try {
+          await emotionManager.start();
+        } catch (error) {
+          console.warn('Failed to start emotion recognition:', error);
+        }
+
         // Get signed URL from backend function
         const { data, error } = await supabase.functions.invoke('elevenlabs-session', {
           body: { agentId: 'agent_9101k8j89ntmex29dyn3dg27emf0' },
@@ -185,6 +200,21 @@ const Index = () => {
   const [isDark, setIsDark] = useState(false);
   const [mouthOpenSize, setMouthOpenSize] = useState(0);
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>('hiyori');
+  
+  // Emotion recognition system
+  const emotionManager = useEmotionManager({
+    voiceEnabled: true,
+    facialEnabled: false, // Set to true to enable webcam facial detection
+    fusionWeight: { voice: 1.0, facial: 0.0 },
+  });
+  
+  // Ensure currentAnimation is always defined with safe fallback
+  const emotionAnimation = emotionManager?.currentAnimation ?? {
+    mouthOpenSize: 0,
+    eyeBlinkRate: 0.5,
+    eyebrowPosition: 0,
+    headTilt: 0,
+  };
 
   // Initialize chromatic hue and detect dark mode (from airi)
   useEffect(() => {
@@ -272,6 +302,7 @@ const Index = () => {
                 scale={characterScale}
                 mouthOpenSize={mouthOpenSize}
                 characterId={selectedCharacter}
+                emotionAnimation={emotionAnimation}
               />
             </div>
 
@@ -304,6 +335,19 @@ const Index = () => {
                     </p>
                   </div>
                 </div>
+                
+                {/* Emotion indicator */}
+                {isActive && emotionManager?.emotionState?.current?.emotion !== 'neutral' && (
+                  <div className="mt-2 px-4 py-2 bg-card/40 backdrop-blur-md border border-border/50 rounded-lg text-center animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <p className="text-xs text-foreground/70">
+                      Emotion: <span className="font-semibold capitalize">{emotionManager?.emotionState?.current?.emotion || 'neutral'}</span>
+                      {' '}
+                      <span className="text-foreground/50">
+                        ({Math.round((emotionManager?.emotionState?.current?.intensity || 0) * 100)}%)
+                      </span>
+                    </p>
+                  </div>
+                )}
 
                 {/* Info card */}
                 {isActive && (
