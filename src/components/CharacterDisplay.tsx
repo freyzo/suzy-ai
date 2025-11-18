@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect } from 'react';
 import Screen from './Live2D/Screen';
 import Live2DCanvas from './Live2D/Live2DCanvas';
 import Live2DModelComponent from './Live2D/Live2DModel';
