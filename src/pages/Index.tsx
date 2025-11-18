@@ -250,8 +250,8 @@ const Index = () => {
 
   // Get particle colors from selected scene or current environment
   const particleColors = selectedScene 
-    ? SCENE_CONFIGS[selectedScene].particleColors 
-    : environment.particleColors;
+    ? (SCENE_CONFIGS[selectedScene]?.particleColors || ['#4ecdc4'])
+    : (environment?.particleColors || ['#4ecdc4']);
 
   // Audio visualizer
   const audioVisualizer = useAudioVisualizer({
@@ -334,7 +334,7 @@ const Index = () => {
   }, [isSpeaking, isActive, isConnecting]);
 
   // Mood lighting based on emotion
-  const moodColor = emotionAnimation?.colorTint || environment.particleColors[0] || '#4ecdc4';
+  const moodColor = emotionAnimation?.colorTint || environment?.particleColors?.[0] || '#4ecdc4';
 
   // Use manual scene selection if set, otherwise use emotion-based auto selection
   const backgroundScene = selectedScene || undefined;
@@ -369,7 +369,7 @@ const Index = () => {
           {/* Background selector - top right */}
           <div className="absolute top-4 right-4 z-20 max-md:top-2 max-md:right-2">
             <BackgroundSelector
-              selectedScene={selectedScene || environment.environmentState.scene}
+              selectedScene={selectedScene || environment?.environmentState?.scene || 'forest'}
               onSceneChange={(scene) => {
                 setSelectedScene(scene);
               }}
@@ -447,7 +447,7 @@ const Index = () => {
                       </span>
                     </p>
                     <p className="text-xs text-foreground/50 mt-1">
-                      Scene: <span className="font-semibold capitalize">{environment.environmentState.scene}</span>
+                      Scene: <span className="font-semibold capitalize">{environment?.environmentState?.scene || 'forest'}</span>
                     </p>
                   </div>
                 )}
