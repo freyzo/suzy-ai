@@ -48,7 +48,7 @@ export default function Live2DModelComponent({
     isWalking: false,
     walkPhase: 0, // 0 = idle, 1 = walking left, 2 = walking back
     walkProgress: 0,
-    lastWalkTime: Date.now(),
+    lastWalkTime: 0, // Will be set to currentTime when animation starts
     baseXOffset: 0,
     currentXOffset: 0
   });
@@ -288,8 +288,18 @@ export default function Live2DModelComponent({
     let animationFrame: number;
     let lastTime = 0;
     
+    // Initialize lastWalkTime on first frame
+    if (walkingRef.current.lastWalkTime === 0) {
+      walkingRef.current.lastWalkTime = performance.now();
+    }
+    
     const animateWalking = (currentTime: number) => {
-      if (!lastTime) lastTime = currentTime;
+      if (!lastTime) {
+        lastTime = currentTime;
+        if (walkingRef.current.lastWalkTime === 0) {
+          walkingRef.current.lastWalkTime = currentTime;
+        }
+      }
       const deltaTime = Math.min(currentTime - lastTime, 33);
       lastTime = currentTime;
       
@@ -299,10 +309,12 @@ export default function Live2DModelComponent({
       // Function to start walking (can be called manually)
       const startWalking = () => {
         if (!walking.isWalking) {
+          console.log('Starting walk animation');
           walking.isWalking = true;
           walking.walkPhase = 1; // Start walking left
           walking.walkProgress = 0;
           walking.baseXOffset = parseOffset(xOffset, width);
+          walking.currentXOffset = walking.baseXOffset;
           
           // Trigger walking motion if available
           try {
@@ -310,6 +322,7 @@ export default function Live2DModelComponent({
             for (const motionName of walkMotions) {
               try {
                 modelRef.current?.motion(motionName, MotionPriority.NORMAL);
+                console.log('Triggered motion:', motionName);
                 break; // Use first available motion
               } catch (e) {
                 // Try next motion
@@ -324,9 +337,12 @@ export default function Live2DModelComponent({
       // Expose walk function for manual triggering
       walkTriggerRef.current = startWalking;
       
-      // Start walking automatically every 10-15 seconds (more frequent)
-      if (!walking.isWalking && timeSinceLastWalk > 10000 + Math.random() * 5000) {
-        startWalking();
+      // Start walking automatically every 3-5 seconds (for testing, make it very frequent)
+      // Also start immediately on first run if enough time has passed
+      if (!walking.isWalking) {
+        if (walking.lastWalkTime === 0 || timeSinceLastWalk > 3000 + Math.random() * 2000) {
+          startWalking();
+        }
       }
       
       if (walking.isWalking) {
@@ -360,6 +376,7 @@ export default function Live2DModelComponent({
           
           if (progress >= 1) {
             // Finished walking, reset
+            console.log('Finished walk animation');
             walking.isWalking = false;
             walking.walkPhase = 0;
             walking.walkProgress = 0;
@@ -368,7 +385,7 @@ export default function Live2DModelComponent({
           }
         }
         
-        // Update position
+        // Update position every frame when walking
         setScaleAndPosition();
       }
       
