@@ -52,6 +52,9 @@ export default function Live2DModelComponent({
     baseXOffset: 0,
     currentXOffset: 0
   });
+  
+  // Expose walk function to parent via ref (for manual triggering)
+  const walkTriggerRef = useRef<(() => void) | null>(null);
 
   function parseOffset(offset: number | string, dimension: number): number {
     if (typeof offset === 'string' && offset.endsWith('%')) {
@@ -130,10 +133,16 @@ export default function Live2DModelComponent({
         
         setScaleAndPosition();
 
-        // Set up hit areas
+        // Set up hit areas - click to trigger walking
         modelInstance.on('hit', (hitAreas) => {
           if (hitAreas.includes('body')) {
             modelInstance.motion('tap_body');
+            // Also trigger walking when clicked (after a short delay)
+            setTimeout(() => {
+              if (walkTriggerRef.current && !walkingRef.current.isWalking) {
+                walkTriggerRef.current();
+              }
+            }, 300); // Small delay to let tap_body motion play
           }
         });
 
@@ -287,27 +296,37 @@ export default function Live2DModelComponent({
       const walking = walkingRef.current;
       const timeSinceLastWalk = currentTime - walking.lastWalkTime;
       
-      // Start walking every 15-20 seconds
-      if (!walking.isWalking && timeSinceLastWalk > 15000 + Math.random() * 5000) {
-        walking.isWalking = true;
-        walking.walkPhase = 1; // Start walking left
-        walking.walkProgress = 0;
-        walking.baseXOffset = parseOffset(xOffset, width);
-        
-        // Trigger walking motion if available
-        try {
-          const walkMotions = ['walk', 'walk_left', 'idle_01', 'idle_02'];
-          for (const motionName of walkMotions) {
-            try {
-              modelRef.current?.motion(motionName, MotionPriority.NORMAL);
-              break; // Use first available motion
-            } catch (e) {
-              // Try next motion
+      // Function to start walking (can be called manually)
+      const startWalking = () => {
+        if (!walking.isWalking) {
+          walking.isWalking = true;
+          walking.walkPhase = 1; // Start walking left
+          walking.walkProgress = 0;
+          walking.baseXOffset = parseOffset(xOffset, width);
+          
+          // Trigger walking motion if available
+          try {
+            const walkMotions = ['walk', 'walk_left', 'idle_01', 'idle_02'];
+            for (const motionName of walkMotions) {
+              try {
+                modelRef.current?.motion(motionName, MotionPriority.NORMAL);
+                break; // Use first available motion
+              } catch (e) {
+                // Try next motion
+              }
             }
+          } catch (e) {
+            // No walking motion available, that's okay
           }
-        } catch (e) {
-          // No walking motion available, that's okay
         }
+      };
+      
+      // Expose walk function for manual triggering
+      walkTriggerRef.current = startWalking;
+      
+      // Start walking automatically every 10-15 seconds (more frequent)
+      if (!walking.isWalking && timeSinceLastWalk > 10000 + Math.random() * 5000) {
+        startWalking();
       }
       
       if (walking.isWalking) {
