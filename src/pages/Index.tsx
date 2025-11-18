@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import VoiceOrb from "@/components/VoiceOrb";
 import MicrophoneButton from "@/components/MicrophoneButton";
 import { useConversation } from "@11labs/react";
@@ -24,6 +24,7 @@ const Index = () => {
   const [paused, setPaused] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const isMobile = useIsMobile();
+  const isProcessingClick = useRef(false);
 
   // Track mouse position
   useEffect(() => {
@@ -94,104 +95,118 @@ const Index = () => {
   };
 
   const handleMicClick = async () => {
-    // Prevent multiple clicks
+    // Prevent multiple simultaneous clicks
+    if (isProcessingClick.current) {
+      return;
+    }
+
+    // Prevent clicks during connection phase
     if (isConnecting && conversation.status !== 'connected') {
       return;
     }
 
-    // Check if we should stop (connected)
-    if (conversation.status === 'connected') {
-      // Stop the conversation
-      try {
-        console.log('Stopping conversation, status:', conversation.status);
-        setIsConnecting(false);
-        
-        // Call endSession and wait for it
-        const endPromise = conversation.endSession();
-        if (endPromise && typeof endPromise.then === 'function') {
-          await endPromise;
-        }
-        
-        // Reset state
-        setMouthOpenSize(0);
-        
-        // Stop emotion recognition when conversation ends
+    isProcessingClick.current = true;
+
+    try {
+      // Check if we should stop (connected)
+      if (conversation.status === 'connected') {
+        // Stop the conversation
         try {
-          emotionManager.stop();
-        } catch (error) {
-          console.warn('Failed to stop emotion recognition:', error);
-        }
-        
-        // Double check status after a brief delay
-        setTimeout(() => {
-          if (conversation.status === 'connected') {
-            console.warn('Conversation still connected after endSession, forcing stop');
-            // Try to end again
-            conversation.endSession().catch(console.error);
+          console.log('Stopping conversation, status:', conversation.status);
+          setIsConnecting(false);
+          
+          // Call endSession and wait for it
+          const endPromise = conversation.endSession();
+          if (endPromise && typeof endPromise.then === 'function') {
+            await endPromise;
           }
-        }, 500);
-        
-        console.log('Conversation stopped');
-      } catch (error) {
-        console.error('Error ending conversation:', error);
-        setIsConnecting(false);
-        setMouthOpenSize(0);
-        // Force stop even if there's an error
-        try {
-          conversation.endSession();
-        } catch (e) {
-          console.error('Force stop also failed:', e);
-        }
-        toast({
-          title: 'Error',
-          description: 'Failed to stop conversation',
-          variant: 'destructive',
-        });
-      }
-    } else if (isConnecting) {
-      // If still connecting, just cancel the connection
-      setIsConnecting(false);
-      setMouthOpenSize(0);
-    } else {
-      // Start the conversation
-      setIsConnecting(true);
-      // Open mouth slightly when starting
-      setMouthOpenSize(5);
-      
-      try {
-        await ensureMicAccess();
-
-        // Start emotion recognition when conversation starts
-        try {
-          await emotionManager.start();
+          
+          // Reset state
+          setMouthOpenSize(0);
+          
+          // Stop emotion recognition when conversation ends
+          try {
+            emotionManager.stop();
+          } catch (error) {
+            console.warn('Failed to stop emotion recognition:', error);
+          }
+          
+          // Double check status after a brief delay
+          setTimeout(() => {
+            if (conversation.status === 'connected') {
+              console.warn('Conversation still connected after endSession, forcing stop');
+              // Try to end again
+              conversation.endSession().catch(console.error);
+            }
+          }, 500);
+          
+          console.log('Conversation stopped');
         } catch (error) {
-          console.warn('Failed to start emotion recognition:', error);
+          console.error('Error ending conversation:', error);
+          setIsConnecting(false);
+          setMouthOpenSize(0);
+          // Force stop even if there's an error
+          try {
+            conversation.endSession();
+          } catch (e) {
+            console.error('Force stop also failed:', e);
+          }
+          toast({
+            title: 'Error',
+            description: 'Failed to stop conversation',
+            variant: 'destructive',
+          });
         }
-
-        // Get signed URL from backend function
-        const { data, error } = await supabase.functions.invoke('elevenlabs-session', {
-          body: { agentId: 'agent_9101k8j89ntmex29dyn3dg27emf0' },
-        });
-        if (error) {
-          throw new Error(error.message || 'Failed to get session URL');
-        }
-
-        const { signedUrl } = (data || {}) as { signedUrl?: string };
-        if (!signedUrl) {
-          throw new Error('No signed URL returned by voice service');
-        }
-
-        await conversation.startSession({ signedUrl });
-      } catch (error) {
-        console.error('Error starting conversation:', error);
+      } else if (isConnecting) {
+        // If still connecting, just cancel the connection
         setIsConnecting(false);
         setMouthOpenSize(0);
-        toast({
-          title: 'Error',
-          description: error instanceof Error ? error.message : 'Failed to start conversation',
-          variant: 'destructive',
-        });
+      } else {
+        // Start the conversation
+        setIsConnecting(true);
+        // Open mouth slightly when starting
+        setMouthOpenSize(5);
+        
+        try {
+          await ensureMicAccess();
+
+          // Start emotion recognition when conversation starts
+          try {
+            await emotionManager.start();
+          } catch (error) {
+            console.warn('Failed to start emotion recognition:', error);
+          }
+
+          // Get signed URL from backend function
+          const { data, error } = await supabase.functions.invoke('elevenlabs-session', {
+            body: { agentId: 'agent_9101k8j89ntmex29dyn3dg27emf0' },
+          });
+          if (error) {
+            throw new Error(error.message || 'Failed to get session URL');
+          }
+
+          const { signedUrl } = (data || {}) as { signedUrl?: string };
+          if (!signedUrl) {
+            throw new Error('No signed URL returned by voice service');
+          }
+
+          await conversation.startSession({ signedUrl });
+        } catch (error) {
+          console.error('Error starting conversation:', error);
+          setIsConnecting(false);
+          setMouthOpenSize(0);
+          toast({
+            title: 'Error',
+            description: error instanceof Error ? error.message : 'Failed to start conversation',
+            variant: 'destructive',
+          });
+        }
       }
+    } finally {
+      // Reset processing flag after a short delay to prevent rapid clicks
+      setTimeout(() => {
+        isProcessingClick.current = false;
+      }, 300);
     }
   };
 
@@ -384,7 +399,7 @@ const Index = () => {
                     <MicrophoneButton
                       isActive={isActive}
                       onClick={handleMicClick}
-                      disabled={isConnecting}
+                      disabled={isConnecting || isProcessingClick.current}
                     />
                     <p className="text-sm text-foreground/80 max-lg:text-xs">
                       {isConnecting
@@ -452,7 +467,7 @@ const Index = () => {
                   <MicrophoneButton
                     isActive={isActive}
                     onClick={handleMicClick}
-                    disabled={isConnecting}
+                    disabled={isConnecting || isProcessingClick.current}
                   />
                   <VoiceOrb isActive={isActive} isSpeaking={isSpeaking} />
                 </div>
