@@ -37,6 +37,42 @@ export default function VoiceVisualizer({
     const barWidth = width / barCount;
     const maxBarHeight = height * 0.8;
 
+    // Helper function to add opacity to color
+    const addOpacityToColor = (colorStr: string, opacity: number): string => {
+      // If it's already rgba/rgb, extract and modify
+      if (colorStr.startsWith('rgba')) {
+        const match = colorStr.match(/rgba?\(([^)]+)\)/);
+        if (match) {
+          const values = match[1].split(',').map(v => v.trim());
+          if (values.length >= 3) {
+            return `rgba(${values[0]}, ${values[1]}, ${values[2]}, ${opacity})`;
+          }
+        }
+      } else if (colorStr.startsWith('rgb')) {
+        const match = colorStr.match(/rgb\(([^)]+)\)/);
+        if (match) {
+          const values = match[1].split(',').map(v => v.trim());
+          if (values.length >= 3) {
+            return `rgba(${values[0]}, ${values[1]}, ${values[2]}, ${opacity})`;
+          }
+        }
+      }
+      // For hex colors, convert to rgba
+      if (colorStr.startsWith('#')) {
+        const hex = colorStr.slice(1);
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+      }
+      // Fallback: try to append opacity as hex (for 6-char hex)
+      if (colorStr.startsWith('#') && colorStr.length === 7) {
+        const opacityHex = Math.round(opacity * 255).toString(16).padStart(2, '0');
+        return `${colorStr}${opacityHex}`;
+      }
+      return colorStr;
+    };
+
     frequencyData.slice(0, barCount).forEach((value, index) => {
       const barHeight = value * maxBarHeight;
       const x = index * barWidth;
@@ -45,7 +81,7 @@ export default function VoiceVisualizer({
       // Create gradient
       const gradient = ctx.createLinearGradient(x, y, x, height);
       gradient.addColorStop(0, color);
-      gradient.addColorStop(1, `${color}80`);
+      gradient.addColorStop(1, addOpacityToColor(color, 0.5));
 
       ctx.fillStyle = gradient;
       ctx.fillRect(x, y, barWidth - 2, barHeight);
