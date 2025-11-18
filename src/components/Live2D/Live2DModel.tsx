@@ -72,10 +72,18 @@ export default function Live2DModelComponent({
     if (!app || loading) return;
     
     // If model already exists and modelSrc changed, destroy old model first
-    if (modelRef.current) {
-      app.stage.removeChild(modelRef.current);
-      modelRef.current.destroy();
-      modelRef.current = null;
+    if (modelRef.current && app && app.stage) {
+      try {
+        // Check if model is still a child of the stage before removing
+        if (app.stage.children.includes(modelRef.current)) {
+          app.stage.removeChild(modelRef.current);
+        }
+        modelRef.current.destroy();
+      } catch (error) {
+        console.warn('Error removing old Live2D model:', error);
+      } finally {
+        modelRef.current = null;
+      }
     }
 
     async function loadModel() {
@@ -136,10 +144,18 @@ export default function Live2DModelComponent({
     loadModel();
 
     return () => {
-      if (modelRef.current && app) {
-        app.stage.removeChild(modelRef.current);
-        modelRef.current.destroy();
-        modelRef.current = null;
+      if (modelRef.current && app && app.stage) {
+        try {
+          // Check if model is still a child of the stage before removing
+          if (app.stage.children.includes(modelRef.current)) {
+            app.stage.removeChild(modelRef.current);
+          }
+          modelRef.current.destroy();
+        } catch (error) {
+          console.warn('Error cleaning up Live2D model:', error);
+        } finally {
+          modelRef.current = null;
+        }
       }
     };
   }, [app, modelSrc]); // Reload when app or modelSrc changes

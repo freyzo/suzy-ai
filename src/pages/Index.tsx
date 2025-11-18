@@ -265,10 +265,10 @@ const Index = () => {
   const audioVisualizerRef = useRef(audioVisualizer);
   const audioVisualizerStartedRef = useRef(false);
   
-  // Update ref when audioVisualizer changes
-  useEffect(() => {
+  // Update ref when audioVisualizer changes (but don't trigger re-render)
+  if (audioVisualizerRef.current !== audioVisualizer) {
     audioVisualizerRef.current = audioVisualizer;
-  }, [audioVisualizer]);
+  }
   
   useEffect(() => {
     const visualizer = audioVisualizerRef.current;
