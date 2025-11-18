@@ -22,7 +22,7 @@ export default function DynamicBackground({
     // Always use the provided scene (no emotion-based auto-switching to prevent jumping)
     if (scene && scene !== currentScene) {
       setTransitionProgress(0);
-      const duration = 2000;
+      const duration = 5000; // 5 seconds for smoother, longer transition
       const startTime = Date.now();
 
       const animate = () => {
@@ -54,7 +54,7 @@ export default function DynamicBackground({
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
     backgroundAttachment: 'fixed',
-    transition: 'background-image 2s ease-in-out',
+    transition: 'background-image 5s ease-in-out',
     position: 'fixed' as const,
     top: 0,
     left: 0,
@@ -65,7 +65,7 @@ export default function DynamicBackground({
     height: '100vh',
   } : {
     background: `linear-gradient(135deg, ${sceneConfig.gradientColors.join(', ')})`,
-    transition: 'background 2s ease-in-out',
+    transition: 'background 5s ease-in-out',
     position: 'fixed' as const,
     top: 0,
     left: 0,
