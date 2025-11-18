@@ -263,12 +263,12 @@ const Index = () => {
 
   // Start/stop audio visualizer with conversation
   useEffect(() => {
-    if (isActive && !audioVisualizer.isActive) {
-      audioVisualizer.start().catch(console.error);
-    } else if (!isActive && audioVisualizer.isActive) {
-      audioVisualizer.stop();
+    if (isActive && !audioVisualizer?.isActive) {
+      audioVisualizer?.start()?.catch(console.error);
+    } else if (!isActive && audioVisualizer?.isActive) {
+      audioVisualizer?.stop();
     }
-  }, [isActive]);
+  }, [isActive, audioVisualizer]);
 
   // Initialize chromatic hue and detect dark mode (from airi)
   useEffect(() => {
