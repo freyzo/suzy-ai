@@ -262,16 +262,26 @@ const Index = () => {
   });
 
   // Start/stop audio visualizer with conversation
+  const audioVisualizerRef = useRef(audioVisualizer);
+  const audioVisualizerStartedRef = useRef(false);
+  
+  // Update ref when audioVisualizer changes
   useEffect(() => {
-    if (!audioVisualizer) return;
+    audioVisualizerRef.current = audioVisualizer;
+  }, [audioVisualizer]);
+  
+  useEffect(() => {
+    const visualizer = audioVisualizerRef.current;
+    if (!visualizer) return;
     
-    if (isActive && !audioVisualizer.isActive) {
-      audioVisualizer.start().catch(console.error);
-    } else if (!isActive && audioVisualizer.isActive) {
-      audioVisualizer.stop();
+    if (isActive && !audioVisualizerStartedRef.current) {
+      visualizer.start().catch(console.error);
+      audioVisualizerStartedRef.current = true;
+    } else if (!isActive && audioVisualizerStartedRef.current) {
+      visualizer.stop();
+      audioVisualizerStartedRef.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive]); // Only depend on isActive, not the whole audioVisualizer object
+  }, [isActive]);
 
   // Initialize chromatic hue and detect dark mode (from airi)
   useEffect(() => {
