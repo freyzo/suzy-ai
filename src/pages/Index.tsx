@@ -345,8 +345,8 @@ const Index = () => {
         particleCount={80}
         colors={particleColors}
         baseSpeed={0.5}
-        audioVolume={audioVisualizer.volume}
-        frequencyData={audioVisualizer.frequencyData}
+        audioVolume={audioVisualizer?.volume || 0}
+        frequencyData={audioVisualizer?.frequencyData || []}
       >
         <AnimatedWave
           className="widgets top-widgets"
@@ -423,11 +423,11 @@ const Index = () => {
                 </div>
                 
                 {/* Voice Visualizer */}
-                {isActive && audioVisualizer.frequencyData.length > 0 && (
+                {isActive && audioVisualizer?.frequencyData?.length > 0 && (
                   <div className="mt-4 flex justify-center">
                     <VoiceVisualizer
-                      frequencyData={audioVisualizer.frequencyData}
-                      volume={audioVisualizer.volume}
+                      frequencyData={audioVisualizer.frequencyData || []}
+                      volume={audioVisualizer?.volume || 0}
                       width={300}
                       height={80}
                       barCount={32}
