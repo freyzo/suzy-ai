@@ -313,22 +313,26 @@ const Index = () => {
       const deltaTime = currentTime - lastTime;
       lastTime = currentTime;
 
+      // Check if current emotion is sad - slow down animations
+      const isSadEmotion = currentEmotion === 'sad';
+      const speedMultiplier = isSadEmotion ? 0.5 : 1; // Slow down by 50% for sad
+
       if (isSpeaking) {
         // When speaking: more dynamic lip-sync movement
-        mouthPhase += deltaTime * 0.012; // Faster animation when speaking
+        mouthPhase += deltaTime * 0.012 * speedMultiplier; // Slower for sad emotion
         const baseSize = 28;
         const variation = Math.sin(mouthPhase) * 18; // Vary between 10-46
         const randomVariation = (Math.random() - 0.5) * 10; // Add randomness for natural movement
         setMouthOpenSize(Math.max(12, Math.min(55, baseSize + variation + randomVariation)));
       } else if (isActive || isConnecting) {
         // When active/connecting but not speaking: listening/idle movement
-        mouthPhase += deltaTime * 0.004; // Moderate animation
+        mouthPhase += deltaTime * 0.004 * speedMultiplier; // Slower for sad emotion
         const baseSize = 4;
         const variation = Math.sin(mouthPhase) * 3;
         setMouthOpenSize(Math.max(1, Math.min(10, baseSize + variation)));
       } else {
         // When inactive: very subtle breathing-like movement
-        mouthPhase += deltaTime * 0.002;
+        mouthPhase += deltaTime * 0.002 * speedMultiplier; // Slower for sad emotion
         const baseSize = 0.5;
         const variation = Math.sin(mouthPhase * 0.5) * 1;
         setMouthOpenSize(Math.max(0, Math.min(3, baseSize + variation)));
@@ -344,7 +348,7 @@ const Index = () => {
         cancelAnimationFrame(animationFrame);
       }
     };
-  }, [isSpeaking, isActive, isConnecting]);
+  }, [isSpeaking, isActive, isConnecting, currentEmotion]);
 
   // Mood lighting based on emotion
   const moodColor = emotionAnimation?.colorTint || environment?.particleColors?.[0] || '#4ecdc4';

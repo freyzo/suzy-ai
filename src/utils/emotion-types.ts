@@ -52,7 +52,7 @@ export const EMOTION_ANIMATIONS: Record<EmotionType, EmotionAnimation> = {
   },
   sad: {
     mouthOpenSize: 5,
-    eyeBlinkRate: 0.8,
+    eyeBlinkRate: 0.3, // Slower blinking for sad emotion
     eyebrowPosition: -0.5,
     headTilt: -0.2,
     colorTint: 'rgba(0, 0, 255, 0.1)',
