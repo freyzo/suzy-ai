@@ -17,7 +17,6 @@ import { useEmotionManager } from "@/hooks/use-emotion-manager";
 import { useEnvironment } from "@/hooks/use-environment";
 import { useAudioVisualizer } from "@/hooks/use-audio-visualizer";
 import { SceneType, SCENE_CONFIGS } from "@/utils/environment-types";
-import GifPreview from "@/components/GifPreview";
 
 const Index = () => {
   const { toast } = useToast();
@@ -385,15 +384,13 @@ const Index = () => {
           
           <div className="relative flex flex-col z-[2] h-[100dvh] w-[100vw] overflow-hidden min-h-0">
           {/* Background selector - top right */}
-          <div className="absolute top-4 right-4 z-20 max-md:top-2 max-md:right-2 flex flex-col gap-2 items-end">
+          <div className="absolute top-4 right-4 z-20 max-md:top-2 max-md:right-2">
             <BackgroundSelector
               selectedScene={selectedScene || 'forest'}
               onSceneChange={(scene) => {
                 setSelectedScene(scene);
               }}
             />
-            {/* GIF Preview */}
-            <GifPreview className="w-24 h-16 rounded-lg border-2 border-white/20 shadow-lg" />
           </div>
 
           {/* Main content area */}
