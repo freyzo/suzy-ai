@@ -7,16 +7,25 @@ import { supabase } from "@/integrations/supabase/client";
 import VoiceResponsiveParticles from "@/components/backgrounds/VoiceResponsiveParticles";
 import VoiceVisualizer from "@/components/backgrounds/VoiceVisualizer";
 import DynamicBackground from "@/components/backgrounds/DynamicBackground";
-import BackgroundSelector from "@/components/backgrounds/BackgroundSelector";
 import Cross from "@/components/backgrounds/Cross";
 import AnimatedWave from "@/components/backgrounds/AnimatedWave";
 import CharacterDisplay from "@/components/CharacterDisplay";
-import CharacterSelector, { CharacterId } from "@/components/CharacterSelector";
+import CharacterSelector, { CharacterId, CHARACTERS } from "@/components/CharacterSelector";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEmotionManager } from "@/hooks/use-emotion-manager";
 import { useEnvironment } from "@/hooks/use-environment";
 import { useAudioVisualizer } from "@/hooks/use-audio-visualizer";
 import { SceneType, SCENE_CONFIGS } from "@/utils/environment-types";
+import { useKeyboardShortcuts, COMMON_SHORTCUTS } from "@/hooks/use-keyboard-shortcuts";
+import { useFullscreen } from "@/hooks/use-fullscreen";
+import { useScreenshot } from "@/hooks/use-screenshot";
+import { useAudioSystem } from "@/hooks/use-audio-system";
+import { loadPreferences, savePreferences, UserPreferences } from "@/utils/user-preferences";
+import CustomizationPanel from "@/components/CustomizationPanel";
+import SocialShare from "@/components/SocialShare";
+import { Maximize2, Camera } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { getOptimalParticleCount } from "@/utils/performance";
 
 const Index = () => {
   const { toast } = useToast();
@@ -24,12 +33,19 @@ const Index = () => {
   const [paused, setPaused] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [mouthOpenSize, setMouthOpenSize] = useState(0);
-  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>('hiyori');
-  const [selectedScene, setSelectedScene] = useState<SceneType | null>(null);
+  // Load user preferences
+  const [preferences, setPreferences] = useState<UserPreferences>(loadPreferences());
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>(preferences.characterId as CharacterId);
+  const [selectedScene, setSelectedScene] = useState<SceneType | null>(preferences.autoSceneChange ? null : (preferences.scene as SceneType));
   const [isDark, setIsDark] = useState(false);
   const isMobile = useIsMobile();
   const isProcessingClick = useRef(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // New feature hooks
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
+  const { takeScreenshot } = useScreenshot();
+  const audioSystem = useAudioSystem();
 
   // Track mouse position
   useEffect(() => {
@@ -147,6 +163,7 @@ const Index = () => {
           }, 500);
           
           console.log('Conversation stopped');
+          analytics.track({ name: AnalyticsEvents.CONVERSATION_ENDED });
         } catch (error) {
           console.error('Error ending conversation:', error);
           setIsConnecting(false);
@@ -197,6 +214,7 @@ const Index = () => {
           }
 
           await conversation.startSession({ signedUrl });
+          analytics.track({ name: AnalyticsEvents.CONVERSATION_STARTED });
         } catch (error) {
           console.error('Error starting conversation:', error);
           setIsConnecting(false);
@@ -356,10 +374,78 @@ const Index = () => {
   // Use manual scene selection if set, otherwise use stable default (not emotion-based to prevent jumping)
   const backgroundScene = selectedScene || 'forest';
 
+  // Update audio system scene
+  useEffect(() => {
+    audioSystem.setCurrentScene(backgroundScene);
+  }, [backgroundScene]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      ...COMMON_SHORTCUTS.TOGGLE_MIC,
+      action: handleMicClick,
+    },
+    {
+      ...COMMON_SHORTCUTS.FULLSCREEN,
+      action: () => {
+        toggleFullscreen();
+        analytics.track({ name: AnalyticsEvents.FULLSCREEN_TOGGLED });
+      },
+    },
+    {
+      ...COMMON_SHORTCUTS.SCREENSHOT,
+      action: () => takeScreenshot(),
+    },
+    {
+      ...COMMON_SHORTCUTS.CHANGE_CHARACTER,
+      action: () => {
+        const currentIndex = CHARACTERS.findIndex(c => c.id === selectedCharacter);
+        const nextIndex = (currentIndex + 1) % CHARACTERS.length;
+        setSelectedCharacter(CHARACTERS[nextIndex].id);
+      },
+    },
+  ]);
+
+  // Load preferences on mount
+  useEffect(() => {
+    const prefs = loadPreferences();
+    setPreferences(prefs);
+    if (prefs.fullscreenOnStart && !isFullscreen) {
+      setTimeout(() => toggleFullscreen(), 100);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save preferences when they change
+  const handlePreferencesChange = (newPrefs: Partial<UserPreferences>) => {
+    const updated = { ...preferences, ...newPrefs };
+    setPreferences(updated);
+    savePreferences(newPrefs);
+    
+    // Apply preference changes
+    if (newPrefs.characterId) {
+      setSelectedCharacter(newPrefs.characterId as CharacterId);
+      analytics.track({ name: AnalyticsEvents.CHARACTER_CHANGED, properties: { characterId: newPrefs.characterId } });
+    }
+    if (newPrefs.scene) {
+      setSelectedScene(newPrefs.scene as SceneType);
+      analytics.track({ name: AnalyticsEvents.SCENE_CHANGED, properties: { scene: newPrefs.scene } });
+    }
+    if (newPrefs.musicVolume !== undefined) {
+      audioSystem.setMusicVolume(newPrefs.musicVolume);
+    }
+    if (newPrefs.soundEffectsVolume !== undefined) {
+      audioSystem.setSoundEffectsVolume(newPrefs.soundEffectsVolume);
+    }
+    if (newPrefs.ambientSoundsEnabled !== undefined) {
+      audioSystem.setAmbientSoundsEnabled(newPrefs.ambientSoundsEnabled);
+    }
+  };
+
   return (
     <DynamicBackground emotion={currentEmotion} scene={backgroundScene}>
       <VoiceResponsiveParticles
-        particleCount={80}
+        particleCount={getOptimalParticleCount(80)}
         colors={particleColors}
         baseSpeed={0.5}
         audioVolume={audioVisualizer?.volume || 0}
@@ -383,14 +469,28 @@ const Index = () => {
           />
           
           <div className="relative flex flex-col z-[2] h-[100dvh] w-[100vw] overflow-hidden min-h-0">
-          {/* Background selector - top right */}
-          <div className="absolute top-4 right-4 z-20 max-md:top-2 max-md:right-2">
-            <BackgroundSelector
-              selectedScene={selectedScene || 'forest'}
+          {/* Top right controls */}
+          <div className="absolute top-4 right-4 z-20 max-md:top-2 max-md:right-2 flex gap-2">
+            <CustomizationPanel
+              selectedCharacter={selectedCharacter}
+              selectedScene={selectedScene}
+              onCharacterChange={(char) => {
+                setSelectedCharacter(char);
+                savePreferences({ characterId: char });
+              }}
               onSceneChange={(scene) => {
                 setSelectedScene(scene);
+                savePreferences({ scene });
               }}
+              onPreferencesChange={handlePreferencesChange}
             />
+            <SocialShare />
+            <Button variant="outline" size="icon" onClick={toggleFullscreen}>
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => takeScreenshot()}>
+              <Camera className="h-4 w-4" />
+            </Button>
           </div>
 
           {/* Main content area */}
@@ -440,7 +540,7 @@ const Index = () => {
                 </div>
                 
                 {/* Voice Visualizer */}
-                {isActive && audioVisualizer?.frequencyData?.length > 0 && (
+                {isActive && preferences.showAudioVisualizer && audioVisualizer?.frequencyData?.length > 0 && (
                   <div className="mt-4 flex justify-center">
                     <VoiceVisualizer
                       frequencyData={audioVisualizer.frequencyData || []}
@@ -454,7 +554,7 @@ const Index = () => {
                 )}
                 
                 {/* Emotion indicator */}
-                {isActive && emotionManager?.emotionState?.current?.emotion !== 'neutral' && (
+                {isActive && preferences.showEmotionIndicator && emotionManager?.emotionState?.current?.emotion !== 'neutral' && (
                   <div className="mt-2 px-4 py-2 bg-card/40 backdrop-blur-md border border-border/50 rounded-lg text-center animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <p className="text-xs text-foreground/70">
                       Emotion: <span className="font-semibold capitalize">{emotionManager?.emotionState?.current?.emotion || 'neutral'}</span>
