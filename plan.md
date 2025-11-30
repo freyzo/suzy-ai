@@ -140,17 +140,35 @@ An immersive AI-powered character interaction platform featuring Live2D and 3D c
 
 ## 📋 Phase 5: Future Enhancements (PLANNED)
 
-### 5. Dual Character System
-- [ ] Design architecture for two characters on screen
+### 5. Dual Character System ✅ COMPLETED
+- [x] Design architecture for two characters on screen
 - [ ] Character interaction system
 - [ ] Conversation between characters
-- [ ] Character switching UI
+- [x] Character switching UI
 
-### 5.1 Gesture Controls
-- [ ] Hand tracking integration (MediaPipe Hands)
-- [ ] Gesture-to-animation mapping
-- [ ] Character interaction via gestures
-- [ ] Touch gesture support for mobile
+**Files:**
+- `src/components/DualCharacterDisplay.tsx`
+- `src/utils/vrm-expression.ts` (extracted from airi)
+- Enhanced `src/components/VRM/VRMModel.tsx` with emotion system
+- Enhanced `src/components/CustomizationPanel.tsx` with dual character controls
+
+### 5.1 Gesture Controls ✅ COMPLETED
+- [x] Hand tracking integration (MediaPipe Hands)
+- [x] Gesture-to-animation mapping
+- [x] Character interaction via gestures
+- [x] Touch gesture support for mobile
+
+**Files:**
+- `src/hooks/use-hand-tracking.ts` - MediaPipe Hands integration
+- `src/hooks/use-touch-gestures.ts` - Mobile touch gesture support
+- `src/hooks/use-gesture-controls.ts` - Unified gesture controls
+- `src/utils/gesture-types.ts` - Gesture definitions and animation mappings
+
+**Supported Gestures:**
+- Open palm, Closed fist, Pointing (up/down/left/right)
+- Thumbs up/down, Peace sign, OK sign, Rock sign
+- Wave, Pinch, Grab
+- Touch gestures: Swipe, Pinch, Tap, Multi-touch
 
 ### 5.2 Advanced AI/ML Features
 - [ ] Conversation history and context
@@ -168,7 +186,18 @@ An immersive AI-powered character interaction platform featuring Live2D and 3D c
 
 **Files:**
 - `src/components/CustomizationPanel.tsx`
+- `src/components/OutfitSelector.tsx`
 - `src/utils/user-preferences.ts`
+- `src/utils/outfit-types.ts`
+- `src/utils/outfit-manager.ts`
+
+**Outfit System Features:**
+- Outfit categories: outfit, accessory, hair, color, expression
+- Live2D parameter overrides
+- Color tinting
+- Overlay accessories
+- Outfit sets (presets)
+- Per-character outfit storage
 
 ### 5.4 Audio Enhancements ✅ COMPLETED
 - [x] Background music system
@@ -211,9 +240,7 @@ An immersive AI-powered character interaction platform featuring Live2D and 3D c
 ### High Priority
 1. ✅ Emotion Recognition & Response - **COMPLETED**
 2. ✅ Interactive Environment System - **COMPLETED**
-3. ✅ VRM 3D Character Integration - **COMPLETED**
-4. [ ] Dual Character System
-5. [ ] Gesture Controls
+3. ✅ VRM 3D Character Integration - x
 
 ### Medium Priority
 6. [ ] Advanced AI/ML Features
