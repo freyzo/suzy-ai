@@ -23,6 +23,13 @@ class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: unknown, errorInfo: ErrorInfo) {
+    // Suppress expected WebSocket closing errors from ElevenLabs SDK
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('WebSocket is already in CLOSING') || 
+        errorMessage.includes('WebSocket is already in CLOSED')) {
+      // Expected during disconnect cleanup, silently ignore
+      return;
+    }
     console.error("Error caught by boundary:", error, errorInfo);
   }
 

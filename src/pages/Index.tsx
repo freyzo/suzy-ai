@@ -56,6 +56,75 @@ const Index = () => {
   const { takeScreenshot } = useScreenshot();
   const audioSystem = useAudioSystem();
 
+  // Suppress expected WebSocket closing errors from ElevenLabs SDK
+  useEffect(() => {
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    // Helper to check if message contains WebSocket closing error
+    const isWebSocketClosingError = (message: string): boolean => {
+      return message.includes('WebSocket is already in CLOSING') || 
+             message.includes('WebSocket is already in CLOSED') ||
+             (message.includes('sendMessage') && message.includes('CLOSING')) ||
+             (message.includes('onInputWorkletMessage') && message.includes('CLOSING'));
+    };
+    
+    // Filter console.error for WebSocket closing errors
+    console.error = (...args: any[]) => {
+      const message = args.map(arg => {
+        if (arg instanceof Error) {
+          return arg.message + ' ' + (arg.stack || '');
+        }
+        return String(arg);
+      }).join(' ');
+      
+      // Suppress expected WebSocket closing errors during cleanup
+      if (isWebSocketClosingError(message)) {
+        // Expected during disconnect cleanup, silently ignore
+        return;
+      }
+      originalError.apply(console, args);
+    };
+    
+    // Also filter console.warn for similar messages
+    console.warn = (...args: any[]) => {
+      const message = args.map(arg => String(arg)).join(' ');
+      if (isWebSocketClosingError(message)) {
+        return;
+      }
+      originalWarn.apply(console, args);
+    };
+    
+    // Global error handler to catch unhandled errors
+    const handleError = (event: ErrorEvent) => {
+      const message = (event.message || '') + ' ' + (event.filename || '');
+      if (isWebSocketClosingError(message)) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+    };
+    
+    // Also catch unhandled promise rejections
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const message = String(event.reason || '');
+      if (isWebSocketClosingError(message)) {
+        event.preventDefault();
+        return false;
+      }
+    };
+    
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      console.error = originalError;
+      console.warn = originalWarn;
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   // Track mouse position
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -82,8 +151,16 @@ const Index = () => {
       console.log("Disconnected from ElevenLabs");
       setIsConnecting(false);
       setMouthOpenSize(0);
+      // Note: emotionManager and gestureControls cleanup is handled in handleMicClick
     },
     onError: (error) => {
+      // Suppress WebSocket closing errors - these are expected during cleanup
+      const errorMessage = error?.toString() || '';
+      if (errorMessage.includes('CLOSING') || errorMessage.includes('CLOSED')) {
+        // Expected error during disconnect cleanup, ignore
+        return;
+      }
+      
       console.error("Conversation error:", error);
       setIsConnecting(false);
       toast({
