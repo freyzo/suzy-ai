@@ -287,7 +287,7 @@ export default function Live2DModelComponent({
   
   // Walking animation - walk left then back
   useEffect(() => {
-    if (!modelRef.current || paused) return;
+    if (paused || loading) return;
     
     let animationFrame: number;
     let lastTime = 0;
@@ -298,6 +298,7 @@ export default function Live2DModelComponent({
     }
     
     const animateWalking = (currentTime: number) => {
+      // Continue animation loop even if model isn't loaded yet
       if (!lastTime) {
         lastTime = currentTime;
         if (walkingRef.current.lastWalkTime === 0) {
@@ -307,12 +308,18 @@ export default function Live2DModelComponent({
       const deltaTime = Math.min(currentTime - lastTime, 33);
       lastTime = currentTime;
       
+      // Only proceed if model is loaded and not paused
+      if (!modelRef.current || paused || loading) {
+        animationFrame = requestAnimationFrame(animateWalking);
+        return;
+      }
+      
       const walking = walkingRef.current;
       const timeSinceLastWalk = currentTime - walking.lastWalkTime;
       
       // Function to start walking (can be called manually)
       const startWalking = () => {
-        if (!walking.isWalking) {
+        if (!walking.isWalking && modelRef.current) {
           console.log('Starting walk animation');
           walking.isWalking = true;
           walking.walkPhase = 1; // Start walking left
@@ -325,15 +332,18 @@ export default function Live2DModelComponent({
             const walkMotions = ['walk', 'walk_left', 'idle_01', 'idle_02'];
             for (const motionName of walkMotions) {
               try {
-                modelRef.current?.motion(motionName, MotionPriority.NORMAL);
-                console.log('Triggered motion:', motionName);
-                break; // Use first available motion
+                if (modelRef.current) {
+                  modelRef.current.motion(motionName, MotionPriority.NORMAL);
+                  console.log('Triggered motion:', motionName);
+                  break; // Use first available motion
+                }
               } catch (e) {
                 // Try next motion
               }
             }
           } catch (e) {
-            // No walking motion available, that's okay
+            // No walking motion available, that's okay - we'll still animate position
+            console.log('No walking motion available, using position animation only');
           }
         }
       };
@@ -341,7 +351,7 @@ export default function Live2DModelComponent({
       // Expose walk function for manual triggering
       walkTriggerRef.current = startWalking;
       
-      // Start walking automatically every 3-5 seconds (for testing, make it very frequent)
+      // Start walking automatically every 3-5 seconds
       // Also start immediately on first run if enough time has passed
       if (!walking.isWalking) {
         if (walking.lastWalkTime === 0 || timeSinceLastWalk > 3000 + Math.random() * 2000) {
@@ -349,7 +359,7 @@ export default function Live2DModelComponent({
         }
       }
       
-      if (walking.isWalking) {
+      if (walking.isWalking && modelRef.current) {
         walking.walkProgress += deltaTime;
         const walkDuration = 2000; // 2 seconds to walk left
         const returnDuration = 2000; // 2 seconds to walk back
@@ -403,7 +413,7 @@ export default function Live2DModelComponent({
         cancelAnimationFrame(animationFrame);
       }
     };
-  }, [paused, xOffset, width, height]);
+  }, [paused, loading, xOffset, width, height]);
   
   // Update focus (keep for compatibility)
   useEffect(() => {
