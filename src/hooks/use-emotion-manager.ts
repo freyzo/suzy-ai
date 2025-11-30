@@ -42,6 +42,18 @@ export function useEmotionManager(options: UseEmotionManagerOptions = {}) {
   const previousEmotionRef = useRef<EmotionType>('neutral');
   const transitionStartRef = useRef<number>(0);
   const transitionActiveRef = useRef<boolean>(false);
+  const previousVoiceEmotionRef = useRef<EmotionVector | null>(null);
+  const previousFacialEmotionRef = useRef<EmotionVector | null>(null);
+
+  // Helper to compare emotion vectors by value (not reference)
+  const areEmotionsEqual = useCallback((a: EmotionVector, b: EmotionVector | null): boolean => {
+    if (!b) return false;
+    return (
+      a.emotion === b.emotion &&
+      Math.abs(a.intensity - b.intensity) < 0.01 &&
+      Math.abs(a.confidence - b.confidence) < 0.01
+    );
+  }, []);
 
   // Fuse voice and facial emotions
   const fuseEmotions = useCallback((
@@ -96,6 +108,18 @@ export function useEmotionManager(options: UseEmotionManagerOptions = {}) {
 
   // Update emotion state with smooth transitions
   useEffect(() => {
+    // Only update if emotion values actually changed (not just object reference)
+    const voiceChanged = !areEmotionsEqual(voiceEmotion.emotion, previousVoiceEmotionRef.current);
+    const facialChanged = !areEmotionsEqual(facialEmotion.emotion, previousFacialEmotionRef.current);
+    
+    if (!voiceChanged && !facialChanged) {
+      return; // Skip update if nothing changed
+    }
+
+    // Update refs
+    previousVoiceEmotionRef.current = voiceEmotion.emotion;
+    previousFacialEmotionRef.current = facialEmotion.emotion;
+
     const fused = fuseEmotions(voiceEmotion.emotion, facialEmotion.emotion);
     
     setEmotionState(prev => {
@@ -130,7 +154,7 @@ export function useEmotionManager(options: UseEmotionManagerOptions = {}) {
         transitionDuration: prev.transitionDuration,
       };
     });
-  }, [voiceEmotion.emotion, facialEmotion.emotion, fuseEmotions, historySize]);
+  }, [voiceEmotion.emotion, facialEmotion.emotion, fuseEmotions, historySize, areEmotionsEqual]);
 
   // Get current animation with transition interpolation (memoized)
   const currentAnimation = useMemo((): EmotionAnimation => {

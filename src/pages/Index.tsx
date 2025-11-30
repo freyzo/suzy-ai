@@ -28,6 +28,7 @@ import { Maximize2, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getOptimalParticleCount } from "@/utils/performance";
 import { useGestureControls } from "@/hooks/use-gesture-controls";
+import { analytics, AnalyticsEvents } from "@/utils/analytics";
 
 const Index = () => {
   const { toast } = useToast();
@@ -45,6 +46,7 @@ const Index = () => {
   const isMobile = useIsMobile();
   const isProcessingClick = useRef(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const [appliedOutfitIds, setAppliedOutfitIds] = useState<string[]>(
     preferences.characterOutfits?.[preferences.characterId] || []
   );
@@ -67,6 +69,10 @@ const Index = () => {
     onConnect: () => {
       console.log("Connected to ElevenLabs");
       setIsConnecting(false);
+      // Ensure AudioContext is active after connection
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume().catch(console.error);
+      }
       toast({
         title: "Connected",
         description: "Ready to chat with Suzy",
@@ -88,6 +94,24 @@ const Index = () => {
     },
     onMessage: (message) => {
       console.log("Message received:", message);
+    },
+    onAudio: (audio) => {
+      // Handle audio chunks to ensure continuous playback
+      console.log("Audio chunk received, length:", audio?.byteLength || 0);
+    },
+    onModeChange: (mode) => {
+      console.log("Mode changed:", mode);
+      // Track when conversation switches between speaking/listening
+      if (mode === 'speaking') {
+        console.log("AI is now speaking");
+        // Ensure audio can play when speaking starts
+        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+          audioContextRef.current.resume().catch(console.error);
+        }
+      }
+    },
+    onStatusChange: (status) => {
+      console.log("Status changed:", status);
     },
   });
 
@@ -207,11 +231,13 @@ const Index = () => {
         try {
           await ensureMicAccess();
 
-          // Start emotion recognition when conversation starts
-          try {
-            await emotionManager.start();
-          } catch (error) {
-            console.warn('Failed to start emotion recognition:', error);
+          // Resume AudioContext if suspended (required for browser autoplay policies)
+          if (!audioContextRef.current) {
+            audioContextRef.current = new AudioContext();
+          }
+          if (audioContextRef.current.state === 'suspended') {
+            await audioContextRef.current.resume();
+            console.log('AudioContext resumed');
           }
 
           // Get signed URL from backend function
@@ -229,6 +255,16 @@ const Index = () => {
 
           await conversation.startSession({ signedUrl });
           analytics.track({ name: AnalyticsEvents.CONVERSATION_STARTED });
+
+          // Start emotion recognition after conversation is established
+          // Delay slightly to avoid audio conflicts
+          setTimeout(async () => {
+            try {
+              await emotionManager.start();
+            } catch (error) {
+              console.warn('Failed to start emotion recognition:', error);
+            }
+          }, 500);
         } catch (error) {
           console.error('Error starting conversation:', error);
           setIsConnecting(false);
