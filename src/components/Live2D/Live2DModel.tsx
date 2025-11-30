@@ -198,7 +198,8 @@ export default function Live2DModelComponent({
     currentAngle: 0, 
     baseTilt: 0,
     lastIdleMotion: Date.now(),
-    idleMotionPhase: 0
+    idleMotionPhase: 0,
+    baseBodyLean: 0
   });
   
   useEffect(() => {
@@ -219,23 +220,23 @@ export default function Live2DModelComponent({
       }
       
       const movement = headMovementRef.current;
-      movement.phase += deltaTime * 0.0006; // Slower, more natural movement
+      movement.phase += deltaTime * 0.0003; // Much slower, more natural movement (was 0.0006)
       movement.idleMotionPhase += deltaTime;
       
       // Generate smooth left/right head turns (like Grok companions)
-      const baseAngle = Math.sin(movement.phase) * 10; // -10 to +10 degrees (wider range)
-      const randomDrift = Math.sin(movement.phase * 0.25) * 4; // Additional slow drift
+      const baseAngle = Math.sin(movement.phase) * 8; // Reduced from 10 degrees
+      const randomDrift = Math.sin(movement.phase * 0.15) * 2; // Slower drift, reduced amplitude
       movement.targetAngle = baseAngle + randomDrift;
       
-      // Smooth interpolation to target angle
-      movement.currentAngle += (movement.targetAngle - movement.currentAngle) * 0.03; // Slower interpolation
+      // Smooth interpolation to target angle - slower
+      movement.currentAngle += (movement.targetAngle - movement.currentAngle) * 0.02; // Slower interpolation (was 0.03)
       
       // Apply mouse focus if enabled, otherwise use idle movement
       if (!disableFocusAt && focusAt.x !== 0 && focusAt.y !== 0) {
         // Convert mouse position to head angle (-20 to +20 degrees)
         const normalizedX = (focusAt.x / window.innerWidth) * 2 - 1; // -1 to 1
         const mouseAngle = normalizedX * 20;
-        movement.currentAngle += (mouseAngle - movement.currentAngle) * 0.08; // Slower mouse follow
+        movement.currentAngle += (mouseAngle - movement.currentAngle) * 0.05; // Slower mouse follow (was 0.08)
       }
       
       // Periodic idle motions (like Grok companions) - subtle body shifts every 8-12 seconds
@@ -250,25 +251,26 @@ export default function Live2DModelComponent({
         coreModel.setParameterValueById('ParamAngleZ', movement.currentAngle);
         
         // Subtle head tilt based on movement (will be blended with emotion in mouth effect)
-        const tilt = Math.sin(movement.phase * 0.4) * 2.5; // Slightly more tilt
+        const tilt = Math.sin(movement.phase * 0.2) * 1.5; // Slower and reduced tilt (was 0.4 and 2.5)
         // Store base tilt for blending with emotion animations
         headMovementRef.current.baseTilt = tilt;
         
-        // Body sway (subtle left/right movement) - makes it feel alive
-        let bodySway = Math.sin(movement.phase * 0.3) * 2; // Increased sway
+        // Body sway (subtle left/right movement) - makes it feel alive, but slower
+        let bodySway = Math.sin(movement.phase * 0.15) * 1; // Much slower and reduced sway (was 0.3 and 2)
         
         // Periodic idle motion - subtle shifts
         if (movement.idleMotionPhase < 2000) {
           const idleIntensity = Math.sin((movement.idleMotionPhase / 2000) * Math.PI);
-          const idleShift = idleIntensity * 3;
+          const idleShift = idleIntensity * 1.5; // Reduced from 3
           bodySway += idleShift;
         }
         
         coreModel.setParameterValueById('ParamBodyAngleZ', bodySway);
         
-        // Subtle body angle Y (forward/backward lean) - breathing-like
-        const bodyLean = Math.sin(movement.phase * 0.25) * 1.5;
-        coreModel.setParameterValueById('ParamBodyAngleY', bodyLean);
+        // Subtle body angle Y (forward/backward lean) - breathing-like, slower
+        // This will be blended with breathing animation
+        const bodyLean = Math.sin(movement.phase * 0.15) * 0.8; // Slower and reduced (was 0.25 and 1.5)
+        headMovementRef.current.baseBodyLean = bodyLean;
       } catch (e) {
         // Parameters might not exist, ignore
       }
@@ -517,6 +519,216 @@ export default function Live2DModelComponent({
       }
     }
   }, [mouthOpenSize, emotionAnimation]);
+
+  // Random idle motions and reactions - makes character feel alive
+  const idleMotionRef = useRef({
+    lastIdleMotion: 0,
+    lastFlickMotion: 0,
+    lastTapMotion: 0,
+    motionCooldown: 0,
+  });
+
+  useEffect(() => {
+    if (!modelRef.current || paused || loading) return;
+
+    let animationFrame: number;
+    let lastTime = 0;
+
+    const animateIdleMotions = (currentTime: number) => {
+      if (!lastTime) lastTime = currentTime;
+      const deltaTime = Math.min(currentTime - lastTime, 33);
+      lastTime = currentTime;
+
+      if (!modelRef.current || paused || loading) {
+        animationFrame = requestAnimationFrame(animateIdleMotions);
+        return;
+      }
+
+      const idle = idleMotionRef.current;
+      idle.motionCooldown = Math.max(0, idle.motionCooldown - deltaTime);
+
+      // Random idle motions every 8-15 seconds
+      const timeSinceIdle = currentTime - idle.lastIdleMotion;
+      if (idle.motionCooldown === 0 && timeSinceIdle > 8000 + Math.random() * 7000) {
+        try {
+          const idleMotions = ['Idle'];
+          const randomMotion = idleMotions[Math.floor(Math.random() * idleMotions.length)];
+          modelRef.current.motion(randomMotion, MotionPriority.IDLE);
+          idle.lastIdleMotion = currentTime;
+          idle.motionCooldown = 2000; // 2 second cooldown
+          console.log('Triggered idle motion:', randomMotion);
+        } catch (e) {
+          // Motion might not exist
+        }
+      }
+
+      // Random flick motions (looking around) every 10-20 seconds
+      const timeSinceFlick = currentTime - idle.lastFlickMotion;
+      if (idle.motionCooldown === 0 && timeSinceFlick > 10000 + Math.random() * 10000) {
+        try {
+          const flickMotions = ['Flick', 'FlickUp', 'FlickDown'];
+          const randomFlick = flickMotions[Math.floor(Math.random() * flickMotions.length)];
+          modelRef.current.motion(randomFlick, MotionPriority.NORMAL);
+          idle.lastFlickMotion = currentTime;
+          idle.motionCooldown = 1500;
+          console.log('Triggered flick motion:', randomFlick);
+        } catch (e) {
+          // Motion might not exist
+        }
+      }
+
+      animationFrame = requestAnimationFrame(animateIdleMotions);
+    };
+
+    animationFrame = requestAnimationFrame(animateIdleMotions);
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [paused, loading]);
+
+  // Enhanced breathing animation - subtle scale pulsing
+  const breathingRef = useRef({
+    phase: 0,
+    baseScale: scale,
+  });
+
+  useEffect(() => {
+    if (!modelRef.current || paused) return;
+
+    let animationFrame: number;
+    let lastTime = 0;
+
+    const animateBreathing = (currentTime: number) => {
+      if (!lastTime) lastTime = currentTime;
+      const deltaTime = Math.min(currentTime - lastTime, 33);
+      lastTime = currentTime;
+
+      if (!modelRef.current || paused) {
+        animationFrame = requestAnimationFrame(animateBreathing);
+        return;
+      }
+
+      const breathing = breathingRef.current;
+      breathing.phase += deltaTime * 0.0003; // Much slower breathing cycle (was 0.001)
+
+      // Subtle scale pulsing (breathing effect) - reduced variation
+      const breathingScale = 1 + Math.sin(breathing.phase) * 0.005; // Reduced from 0.01
+      const currentScale = breathing.baseScale * breathingScale;
+
+      // Apply breathing to body parameters if available
+      const coreModel = (modelRef.current.internalModel as any)?.coreModel;
+      if (coreModel) {
+        try {
+          // Subtle chest/body movement for breathing - much slower and gentler
+          // Blend with head movement's base body lean
+          const breathAmount = Math.sin(breathing.phase) * 0.15; // Reduced from 0.3
+          const baseLean = headMovementRef.current.baseBodyLean || 0;
+          const blendedLean = baseLean + breathAmount;
+          coreModel.setParameterValueById('ParamBodyAngleY', blendedLean);
+        } catch (e) {
+          // Parameter might not exist
+        }
+      }
+
+      animationFrame = requestAnimationFrame(animateBreathing);
+    };
+
+    breathingRef.current.baseScale = scale;
+    animationFrame = requestAnimationFrame(animateBreathing);
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [paused, scale]);
+
+  // Eye blinking animation
+  const blinkRef = useRef({
+    isBlinking: false,
+    blinkProgress: 0,
+    timeSinceLastBlink: 0,
+    nextBlinkTime: Math.random() * 3000 + 2000, // 2-5 seconds
+  });
+
+  useEffect(() => {
+    if (!modelRef.current || paused) return;
+
+    let animationFrame: number;
+    let lastTime = 0;
+
+    const animateBlink = (currentTime: number) => {
+      if (!lastTime) lastTime = currentTime;
+      const deltaTime = Math.min(currentTime - lastTime, 33);
+      lastTime = currentTime;
+
+      if (!modelRef.current || paused) {
+        animationFrame = requestAnimationFrame(animateBlink);
+        return;
+      }
+
+      const blink = blinkRef.current;
+      const coreModel = (modelRef.current.internalModel as any)?.coreModel;
+
+      if (!coreModel) {
+        animationFrame = requestAnimationFrame(animateBlink);
+        return;
+      }
+
+      blink.timeSinceLastBlink += deltaTime;
+
+      // Check if it's time to blink
+      if (!blink.isBlinking && blink.timeSinceLastBlink >= blink.nextBlinkTime) {
+        blink.isBlinking = true;
+        blink.blinkProgress = 0;
+      }
+
+      // Handle blinking animation
+      if (blink.isBlinking) {
+        blink.blinkProgress += deltaTime / 150; // 150ms blink duration
+
+        // Smooth blink curve (ease in-out)
+        const blinkValue = blink.blinkProgress < 0.5
+          ? 2 * blink.blinkProgress * blink.blinkProgress
+          : 1 - Math.pow(-2 * blink.blinkProgress + 2, 2) / 2;
+
+        try {
+          // Close eyes during blink (0 = closed, 1 = open)
+          const eyeOpenValue = 1 - blinkValue;
+          coreModel.setParameterValueById('ParamEyeLOpen', eyeOpenValue);
+          coreModel.setParameterValueById('ParamEyeROpen', eyeOpenValue);
+        } catch (e) {
+          // Parameters might not exist
+        }
+
+        // Reset blink when complete
+        if (blink.blinkProgress >= 1) {
+          blink.isBlinking = false;
+          blink.timeSinceLastBlink = 0;
+          blink.nextBlinkTime = Math.random() * 3000 + 2000; // Random next blink time
+          try {
+            coreModel.setParameterValueById('ParamEyeLOpen', 1);
+            coreModel.setParameterValueById('ParamEyeROpen', 1);
+          } catch (e) {
+            // Parameters might not exist
+          }
+        }
+      }
+
+      animationFrame = requestAnimationFrame(animateBlink);
+    };
+
+    animationFrame = requestAnimationFrame(animateBlink);
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [paused]);
 
   // Handle pause
   useEffect(() => {
