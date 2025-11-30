@@ -44,12 +44,13 @@ export default function DynamicBackground({
 
   const sceneConfig = SCENE_CONFIGS[currentScene];
 
-  // For forest scene, use the fairy background image
-  const isForestScene = currentScene === 'forest';
+  // For forest scenes, use the fairy background images
+  const isForestScene = currentScene === 'forest' || currentScene === 'forest2';
+  const forestImage = currentScene === 'forest' ? '/fairy-forest.png' : '/fairy1-forest.png';
   
   // Create background style
   const backgroundStyle = isForestScene ? {
-    backgroundImage: `url("/fairy-forest.e17cbc2774.ko-fi.com (1).png")`,
+    backgroundImage: `url("${forestImage}")`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',

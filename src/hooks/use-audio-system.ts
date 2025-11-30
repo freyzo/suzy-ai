@@ -21,6 +21,7 @@ const AMBIENT_SOUNDS: Record<SceneType, string[]> = {
   studio: [],
   nature: [],
   forest: [],
+  forest2: [],
   space: [],
   ocean: [],
 };
@@ -142,4 +143,6 @@ export function useAudioSystem() {
     playSoundEffect,
   };
 }
+
+
 

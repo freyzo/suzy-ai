@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import '../../utils/live2d-zip-loader';
 
 import { EmotionAnimation } from '@/utils/emotion-types';
+import { outfitManager } from '@/utils/outfit-manager';
+import { CharacterId } from '@/components/CharacterSelector';
 
 interface Live2DModelProps {
   app: Application;
@@ -19,6 +21,7 @@ interface Live2DModelProps {
   scale?: number;
   mouthOpenSize?: number;
   emotionAnimation?: EmotionAnimation;
+  characterId?: CharacterId;
   onModelLoaded?: () => void;
   onModelError?: () => void;
 }
@@ -37,6 +40,7 @@ export default function Live2DModelComponent({
   scale = 1,
   mouthOpenSize = 0,
   emotionAnimation,
+  characterId = 'hiyori',
   onModelLoaded,
   onModelError,
 }: Live2DModelProps) {
@@ -408,6 +412,23 @@ export default function Live2DModelComponent({
     }
   }, [focusAt, disableFocusAt]);
 
+  // Apply outfit parameters
+  useEffect(() => {
+    if (modelRef.current && characterId) {
+      const coreModel = (modelRef.current.internalModel as any).coreModel;
+      if (coreModel) {
+        const outfitParams = outfitManager.getLive2DParams(characterId);
+        Object.entries(outfitParams).forEach(([paramName, value]) => {
+          try {
+            coreModel.setParameterValueById(paramName, value);
+          } catch (e) {
+            // Parameter might not exist, ignore
+          }
+        });
+      }
+    }
+  }, [characterId, modelRef.current]);
+
   // Update mouth with smooth interpolation
   useEffect(() => {
     if (modelRef.current) {
@@ -418,6 +439,16 @@ export default function Live2DModelComponent({
         
         // Set main mouth open parameter
         coreModel.setParameterValueById('ParamMouthOpenY', finalMouthSize);
+        
+        // Apply outfit parameters (may override some emotion params)
+        const outfitParams = outfitManager.getLive2DParams(characterId);
+        Object.entries(outfitParams).forEach(([paramName, value]) => {
+          try {
+            coreModel.setParameterValueById(paramName, value);
+          } catch (e) {
+            // Parameter might not exist, ignore
+          }
+        });
         
         // Apply emotion-based parameters
         if (emotionAnimation) {

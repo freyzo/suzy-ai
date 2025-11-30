@@ -4,6 +4,7 @@ import Live2DCanvas from './Live2D/Live2DCanvas';
 import Live2DModelComponent from './Live2D/Live2DModel';
 import { CharacterId, CHARACTERS } from './CharacterSelector';
 import { EmotionAnimation } from '@/utils/emotion-types';
+import { outfitManager } from '@/utils/outfit-manager';
 
 // Lazy load VRM components to prevent breaking if VRM dependencies fail
 const VRMScene = lazy(() => 
@@ -31,6 +32,7 @@ interface CharacterDisplayProps {
   mouthOpenSize?: number;
   characterId?: CharacterId;
   emotionAnimation?: EmotionAnimation;
+  outfitIds?: string[]; // Applied outfit IDs
 }
 
 export default function CharacterDisplay({
@@ -42,6 +44,7 @@ export default function CharacterDisplay({
   mouthOpenSize = 0,
   characterId = 'hiyori',
   emotionAnimation,
+  outfitIds,
 }: CharacterDisplayProps) {
   const [useLive2D, setUseLive2D] = useState(true);
   const [modelLoadError, setModelLoadError] = useState(false);
@@ -51,6 +54,21 @@ export default function CharacterDisplay({
   const character = CHARACTERS.find(c => c.id === characterId) || CHARACTERS[0];
   const modelSrc = character.modelSrc;
   const isVRM = character.type === 'vrm';
+  
+  // Apply outfits if provided
+  useEffect(() => {
+    if (outfitIds && outfitIds.length > 0) {
+      outfitManager.clearOutfits(characterId);
+      outfitManager.applyOutfitSet(characterId, outfitIds);
+    }
+  }, [characterId, outfitIds]);
+  
+  // Get outfit effects
+  const outfitColorTint = outfitManager.getColorTint(characterId);
+  const overlayAccessories = outfitManager.getOverlayAccessories(characterId);
+  
+  // Combine color tints (outfit + emotion)
+  const finalColorTint = outfitColorTint || emotionAnimation?.colorTint;
   
   // Reset loading state when character changes
   useEffect(() => {
@@ -62,9 +80,10 @@ export default function CharacterDisplay({
     <div
       className="character-container flex-1 min-w-[50%] h-full w-full relative max-md:min-w-full touch-manipulation min-h-0 min-w-0"
       style={{
-        boxShadow: emotionAnimation?.colorTint 
-          ? `0 0 50px ${emotionAnimation.colorTint}` 
+        boxShadow: finalColorTint 
+          ? `0 0 50px ${finalColorTint}` 
           : undefined,
+        filter: outfitColorTint ? `drop-shadow(0 0 20px ${outfitColorTint}40)` : undefined,
       }}
     >
       {isVRM ? (
@@ -130,6 +149,7 @@ export default function CharacterDisplay({
                     scale={scale}
                     mouthOpenSize={mouthOpenSize}
                     emotionAnimation={emotionAnimation}
+                    characterId={characterId}
                     onModelLoaded={() => {
                       console.log('Live2D model loaded:', character.name);
                       setIsModelLoading(false);
@@ -147,6 +167,26 @@ export default function CharacterDisplay({
               </Live2DCanvas>
             )}
           </Screen>
+          
+          {/* Overlay accessories */}
+          {overlayAccessories.map((accessory, index) => {
+            if (!accessory.overlayImage) return null;
+            const pos = accessory.overlayPosition || { x: 0, y: 0, scale: 1 };
+            return (
+              <img
+                key={`${accessory.id}-${index}`}
+                src={accessory.overlayImage}
+                alt={accessory.name}
+                className="absolute pointer-events-none z-20"
+                style={{
+                  left: `calc(50% + ${pos.x}px)`,
+                  top: `calc(50% + ${pos.y}px)`,
+                  transform: `translate(-50%, -50%) scale(${pos.scale})`,
+                  opacity: 0.9,
+                }}
+              />
+            );
+          })}
         </>
       ) : (
         <div className="relative w-full h-full flex items-center justify-center overflow-hidden min-h-[200px] min-w-[200px]">

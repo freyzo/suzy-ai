@@ -1,6 +1,6 @@
 // Environment state types and utilities
 
-export type SceneType = 'office' | 'cafe' | 'studio' | 'nature' | 'forest' | 'space' | 'ocean';
+export type SceneType = 'office' | 'cafe' | 'studio' | 'nature' | 'forest' | 'forest2' | 'space' | 'ocean';
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 export type WeatherType = 'clear' | 'rainy' | 'cloudy' | 'stormy' | 'snowy';
 
@@ -49,6 +49,12 @@ export const SCENE_CONFIGS: Record<SceneType, SceneConfig> = {
     particleColors: ['#8b4513', '#228b22', '#32cd32'],
     moodIntensity: 0.4,
   },
+  forest2: {
+    backgroundColor: '#2d5016',
+    gradientColors: ['#3d6b1f', '#2d5016', '#1f3a0f'],
+    particleColors: ['#8b4513', '#228b22', '#32cd32'],
+    moodIntensity: 0.4,
+  },
   space: {
     backgroundColor: '#0a0a1a',
     gradientColors: ['#1a1a2e', '#0a0a1a', '#000000'],
@@ -78,6 +84,8 @@ export function getSceneFromEmotion(emotion: string): SceneType {
   };
   return emotionSceneMap[emotion] || 'office';
 }
+
+
 
 
 

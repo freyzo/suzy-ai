@@ -6,28 +6,39 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CharacterId } from './CharacterSelector';
+import { CharacterId, CHARACTERS } from './CharacterSelector';
 import { SceneType } from '@/utils/environment-types';
 import { UserPreferences, savePreferences, loadPreferences } from '@/utils/user-preferences';
+import { useIsMobile } from '@/hooks/use-mobile';
+import OutfitSelector from './OutfitSelector';
 
 interface CustomizationPanelProps {
   selectedCharacter: CharacterId;
   selectedScene: SceneType | null;
+  selectedCharacter2?: CharacterId | null;
+  dualCharacterMode?: boolean;
   onCharacterChange: (characterId: CharacterId) => void;
   onSceneChange: (scene: SceneType) => void;
+  onCharacter2Change?: (characterId: CharacterId | null) => void;
+  onDualCharacterModeChange?: (enabled: boolean) => void;
   onPreferencesChange?: (preferences: Partial<UserPreferences>) => void;
 }
 
 export default function CustomizationPanel({
   selectedCharacter,
   selectedScene,
+  selectedCharacter2,
+  dualCharacterMode = false,
   onCharacterChange,
   onSceneChange,
+  onCharacter2Change,
+  onDualCharacterModeChange,
   onPreferencesChange,
 }: CustomizationPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>(loadPreferences());
   const [uploadingModel, setUploadingModel] = useState(false);
+  const isMobile = useIsMobile();
 
   const handlePreferenceChange = (key: keyof UserPreferences, value: any) => {
     const updated = { ...preferences, [key]: value };
@@ -91,26 +102,41 @@ export default function CustomizationPanel({
           <TabsContent value="character" className="space-y-4">
             <div className="space-y-2">
               <Label>Character</Label>
-              <div className="flex gap-2">
-                <Button
-                  variant={selectedCharacter === 'hiyori' ? 'default' : 'outline'}
-                  onClick={() => onCharacterChange('hiyori')}
-                >
-                  Hiyori
-                </Button>
-                <Button
-                  variant={selectedCharacter === 'character2' ? 'default' : 'outline'}
-                  onClick={() => onCharacterChange('character2')}
-                >
-                  Character 2
-                </Button>
+              <div className="grid grid-cols-2 gap-2">
+                {(['hiyori', 'character2', 'vrm-character', 'vrm-character-a'] as CharacterId[]).map((charId) => {
+                  const char = CHARACTERS.find(c => c.id === charId);
+                  if (!char) return null;
+                  return (
+                    <Button
+                      key={charId}
+                      variant={selectedCharacter === charId ? 'default' : 'outline'}
+                      onClick={() => onCharacterChange(charId)}
+                      className="capitalize"
+                    >
+                      {char.name}
+                    </Button>
+                  );
+                })}
               </div>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t">
+              <OutfitSelector
+                characterId={selectedCharacter}
+                onOutfitChange={(outfitIds) => {
+                  const currentOutfits = preferences.characterOutfits || {};
+                  handlePreferenceChange('characterOutfits', {
+                    ...currentOutfits,
+                    [selectedCharacter]: outfitIds,
+                  });
+                }}
+              />
             </div>
 
             <div className="space-y-2">
               <Label>Scene</Label>
               <div className="grid grid-cols-2 gap-2">
-                {(['office', 'cafe', 'studio', 'nature', 'forest', 'space', 'ocean'] as SceneType[]).map((scene) => (
+                {(['office', 'cafe', 'studio', 'nature', 'forest', 'forest2', 'space', 'ocean'] as SceneType[]).map((scene) => (
                   <Button
                     key={scene}
                     variant={selectedScene === scene ? 'default' : 'outline'}
@@ -204,6 +230,40 @@ export default function CustomizationPanel({
                   onCheckedChange={(checked) => handlePreferenceChange('showAudioVisualizer', checked)}
                 />
               </div>
+
+              <div className="space-y-2 pt-4 border-t">
+                <Label className="text-sm font-semibold">Gesture Controls</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="gesture-controls" className="text-sm font-normal">Enable Gesture Controls</Label>
+                  <Switch
+                    id="gesture-controls"
+                    checked={preferences.gestureControlsEnabled ?? true}
+                    onCheckedChange={(checked) => handlePreferenceChange('gestureControlsEnabled', checked)}
+                  />
+                </div>
+                {!isMobile && (
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="hand-tracking" className="text-sm font-normal">Hand Tracking (Webcam)</Label>
+                    <Switch
+                      id="hand-tracking"
+                      checked={preferences.handTrackingEnabled ?? true}
+                      onCheckedChange={(checked) => handlePreferenceChange('handTrackingEnabled', checked)}
+                      disabled={!preferences.gestureControlsEnabled}
+                    />
+                  </div>
+                )}
+                {isMobile && (
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="touch-gestures" className="text-sm font-normal">Touch Gestures</Label>
+                    <Switch
+                      id="touch-gestures"
+                      checked={preferences.touchGesturesEnabled ?? true}
+                      onCheckedChange={(checked) => handlePreferenceChange('touchGesturesEnabled', checked)}
+                      disabled={!preferences.gestureControlsEnabled}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </TabsContent>
 
@@ -255,4 +315,5 @@ export default function CustomizationPanel({
     </Dialog>
   );
 }
+
 

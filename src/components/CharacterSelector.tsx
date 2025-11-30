@@ -1,7 +1,7 @@
 import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type CharacterId = 'hiyori' | 'character2' | 'vrm-character';
+export type CharacterId = 'hiyori' | 'character2' | 'vrm-character' | 'vrm-character-a';
 export type CharacterType = 'live2d' | 'vrm';
 
 export interface Character {
@@ -29,9 +29,16 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: 'vrm-character',
-    name: 'VRM Character',
+    name: 'VRM Character B',
     type: 'vrm',
-    modelSrc: '/assets/vrm/models/AvatarSample-B/AvatarSample_B.vrm', // Default VRM model path
+    modelSrc: '/assets/vrm/models/AvatarSample-B/AvatarSample_B.vrm',
+    previewImage: undefined,
+  },
+  {
+    id: 'vrm-character-a',
+    name: 'VRM Character A',
+    type: 'vrm',
+    modelSrc: '/assets/vrm/models/AvatarSample-A/AvatarSample_A.vrm',
     previewImage: undefined,
   },
 ];

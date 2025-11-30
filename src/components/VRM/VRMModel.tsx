@@ -6,6 +6,7 @@ import { useFrame } from '@react-three/fiber';
 
 import { clipFromVRMAnimation, loadVRMAnimation, useBlink, useIdleEyeSaccades } from '@/utils/vrm-animation';
 import { loadVrm } from '@/utils/vrm-core';
+import { useVRMEmote } from '@/utils/vrm-expression';
 
 interface VRMModelProps {
   modelSrc?: string;
@@ -13,6 +14,7 @@ interface VRMModelProps {
   idleAnimation?: string;
   paused?: boolean;
   lookAtTarget?: { x: number; y: number; z: number };
+  emotion?: string;
   onLoadProgress?: (progress: number) => void;
   onModelReady?: () => void;
   onError?: (error: unknown) => void;
@@ -24,6 +26,7 @@ export default function VRMModel({
   idleAnimation = '/assets/vrm/animations/idle_loop.vrma',
   paused = false,
   lookAtTarget = { x: 0, y: 0, z: -1000 },
+  emotion,
   onLoadProgress,
   onModelReady,
   onError,
@@ -33,6 +36,7 @@ export default function VRMModel({
   const mixerRef = useRef<AnimationMixer | null>(null);
   const blinkRef = useRef(useBlink());
   const idleEyeSaccadesRef = useRef(useIdleEyeSaccades());
+  const vrmEmoteRef = useRef<ReturnType<typeof useVRMEmote> | null>(null);
   
   const [modelLoaded, setModelLoaded] = useState(false);
   const [modelCreating, setModelCreating] = useState(false);
@@ -112,6 +116,9 @@ export default function VRMModel({
           }
         });
 
+        // Initialize VRM emotion system
+        vrmEmoteRef.current = useVRMEmote(_vrm);
+
         setModelLoaded(true);
         onModelReady?.();
       } catch (err) {
@@ -144,6 +151,13 @@ export default function VRMModel({
     };
   }, [modelSrc, modelFile]);
 
+  // Update emotion when it changes
+  useEffect(() => {
+    if (emotion && vrmEmoteRef.current && modelLoaded) {
+      vrmEmoteRef.current.setEmotion(emotion);
+    }
+  }, [emotion, modelLoaded]);
+
   // Animation loop
   useFrame((state, delta) => {
     if (paused || !vrmRef.current) return;
@@ -160,6 +174,9 @@ export default function VRMModel({
 
     // Update eye saccades
     idleEyeSaccadesRef.current.update(vrmRef.current, lookAtTarget, delta);
+
+    // Update VRM emotion expressions
+    vrmEmoteRef.current?.update(delta);
   });
 
   return <group ref={groupRef} />;

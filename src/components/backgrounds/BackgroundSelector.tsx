@@ -15,6 +15,7 @@ const SCENE_NAMES: Record<SceneType, string> = {
   studio: 'Studio',
   nature: 'Nature',
   forest: 'Forest',
+  forest2: 'Forest 2',
   space: 'Space',
   ocean: 'Ocean',
 };

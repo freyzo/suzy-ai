@@ -11,6 +11,11 @@ export interface UserPreferences {
   showAudioVisualizer: boolean;
   fullscreenOnStart: boolean;
   theme: 'light' | 'dark' | 'auto';
+  gestureControlsEnabled: boolean;
+  handTrackingEnabled: boolean;
+  touchGesturesEnabled: boolean;
+  outfitIds?: string[]; // Array of applied outfit IDs per character
+  characterOutfits?: Record<string, string[]>; // characterId -> outfitIds mapping
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -25,6 +30,9 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   showAudioVisualizer: true,
   fullscreenOnStart: false,
   theme: 'auto',
+  gestureControlsEnabled: true,
+  handTrackingEnabled: true,
+  touchGesturesEnabled: true,
 };
 
 const STORAGE_KEY = 'suzy-ai-preferences';
@@ -59,4 +67,5 @@ export function resetPreferences(): void {
     console.warn('Failed to reset preferences:', error);
   }
 }
+
 

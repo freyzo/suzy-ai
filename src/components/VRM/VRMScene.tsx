@@ -12,6 +12,7 @@ interface VRMSceneProps {
   paused?: boolean;
   focusAt?: { x: number; y: number };
   emotionAnimation?: EmotionAnimation;
+  emotion?: string;
   onModelReady?: () => void;
   onError?: (error: unknown) => void;
 }
@@ -22,6 +23,7 @@ export default function VRMScene({
   paused = false,
   focusAt = { x: 0, y: 0 },
   emotionAnimation,
+  emotion,
   onModelReady,
   onError,
 }: VRMSceneProps) {
@@ -84,6 +86,7 @@ export default function VRMScene({
           idleAnimation="/assets/vrm/animations/idle_loop.vrma"
           paused={paused}
           lookAtTarget={lookAtTarget}
+          emotion={emotion || emotionAnimation?.emotion}
           onModelReady={onModelReady}
           onError={onError}
         />

@@ -4,7 +4,7 @@ interface ImageBackgroundProps {
 }
 
 export default function ImageBackground({ 
-  imageUrl = '/fairy-forest.e17cbc2774.ko-fi.com (1).png',
+  imageUrl = '/fairy-forest.png',
   children 
 }: ImageBackgroundProps) {
   // URL encode the image path to handle spaces and special characters

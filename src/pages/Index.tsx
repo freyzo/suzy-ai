@@ -11,6 +11,7 @@ import Cross from "@/components/backgrounds/Cross";
 import AnimatedWave from "@/components/backgrounds/AnimatedWave";
 import CharacterDisplay from "@/components/CharacterDisplay";
 import CharacterSelector, { CharacterId, CHARACTERS } from "@/components/CharacterSelector";
+import DualCharacterDisplay from "@/components/DualCharacterDisplay";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEmotionManager } from "@/hooks/use-emotion-manager";
 import { useEnvironment } from "@/hooks/use-environment";
@@ -26,6 +27,7 @@ import SocialShare from "@/components/SocialShare";
 import { Maximize2, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getOptimalParticleCount } from "@/utils/performance";
+import { useGestureControls } from "@/hooks/use-gesture-controls";
 
 const Index = () => {
   const { toast } = useToast();
@@ -36,11 +38,16 @@ const Index = () => {
   // Load user preferences
   const [preferences, setPreferences] = useState<UserPreferences>(loadPreferences());
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>(preferences.characterId as CharacterId);
+  const [selectedCharacter2, setSelectedCharacter2] = useState<CharacterId | null>(null);
+  const [dualCharacterMode, setDualCharacterMode] = useState(false);
   const [selectedScene, setSelectedScene] = useState<SceneType | null>(preferences.autoSceneChange ? null : (preferences.scene as SceneType));
   const [isDark, setIsDark] = useState(false);
   const isMobile = useIsMobile();
   const isProcessingClick = useRef(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [appliedOutfitIds, setAppliedOutfitIds] = useState<string[]>(
+    preferences.characterOutfits?.[preferences.characterId] || []
+  );
 
   // New feature hooks
   const { isFullscreen, toggleFullscreen } = useFullscreen();
@@ -152,6 +159,13 @@ const Index = () => {
           } catch (error) {
             console.warn('Failed to stop emotion recognition:', error);
           }
+
+          // Stop gesture controls when conversation ends
+          try {
+            gestureControls.stop();
+          } catch (error) {
+            console.warn('Failed to stop gesture controls:', error);
+          }
           
           // Double check status after a brief delay
           setTimeout(() => {
@@ -248,15 +262,39 @@ const Index = () => {
     facialEnabled: false, // Set to true to enable webcam facial detection
     fusionWeight: { voice: 1.0, facial: 0.0 },
   });
+
+  // Gesture controls
+  const gestureControls = useGestureControls({
+    enabled: preferences.gestureControlsEnabled ?? true,
+    handTrackingEnabled: preferences.handTrackingEnabled ?? !isMobile,
+    touchGesturesEnabled: preferences.touchGesturesEnabled ?? isMobile,
+    onGestureAnimation: (animation) => {
+      // Gesture animations can override or blend with emotion animations
+      console.log('Gesture animation:', animation);
+    },
+  });
   
   // Ensure currentAnimation is always defined with safe fallback
-  const emotionAnimation = emotionManager?.currentAnimation ?? {
+  const baseEmotionAnimation = emotionManager?.currentAnimation ?? {
     mouthOpenSize: 0,
     eyeBlinkRate: 0.5,
     eyebrowPosition: 0,
     headTilt: 0,
     colorTint: undefined,
   };
+
+  // Blend gesture animation with emotion animation
+  const emotionAnimation = gestureControls.gestureAnimation 
+    ? {
+        ...baseEmotionAnimation,
+        ...gestureControls.gestureAnimation,
+        // Blend mouth open size
+        mouthOpenSize: Math.max(
+          baseEmotionAnimation.mouthOpenSize || 0,
+          gestureControls.gestureAnimation.mouthOpenSize || 0
+        ),
+      }
+    : baseEmotionAnimation;
 
   // Environment system
   const currentEmotion = emotionManager?.emotionState?.current?.emotion || 'neutral';
@@ -422,6 +460,12 @@ const Index = () => {
     setPreferences(updated);
     savePreferences(newPrefs);
     
+    // Update applied outfits if character outfits changed
+    if (newPrefs.characterOutfits) {
+      const outfitIds = newPrefs.characterOutfits[selectedCharacter] || [];
+      setAppliedOutfitIds(outfitIds);
+    }
+    
     // Apply preference changes
     if (newPrefs.characterId) {
       setSelectedCharacter(newPrefs.characterId as CharacterId);
@@ -441,6 +485,12 @@ const Index = () => {
       audioSystem.setAmbientSoundsEnabled(newPrefs.ambientSoundsEnabled);
     }
   };
+  
+  // Update outfits when character changes
+  useEffect(() => {
+    const outfitIds = preferences.characterOutfits?.[selectedCharacter] || [];
+    setAppliedOutfitIds(outfitIds);
+  }, [selectedCharacter, preferences.characterOutfits]);
 
   return (
     <DynamicBackground emotion={currentEmotion} scene={backgroundScene}>
@@ -471,19 +521,30 @@ const Index = () => {
           <div className="relative flex flex-col z-[2] h-[100dvh] w-[100vw] overflow-hidden min-h-0">
           {/* Top right controls */}
           <div className="absolute top-4 right-4 z-20 max-md:top-2 max-md:right-2 flex gap-2">
-            <CustomizationPanel
-              selectedCharacter={selectedCharacter}
-              selectedScene={selectedScene}
-              onCharacterChange={(char) => {
-                setSelectedCharacter(char);
-                savePreferences({ characterId: char });
-              }}
-              onSceneChange={(scene) => {
-                setSelectedScene(scene);
-                savePreferences({ scene });
-              }}
-              onPreferencesChange={handlePreferencesChange}
-            />
+              <CustomizationPanel
+                selectedCharacter={selectedCharacter}
+                selectedScene={selectedScene}
+                selectedCharacter2={selectedCharacter2}
+                dualCharacterMode={dualCharacterMode}
+                onCharacterChange={(char) => {
+                  setSelectedCharacter(char);
+                  savePreferences({ characterId: char });
+                }}
+                onSceneChange={(scene) => {
+                  setSelectedScene(scene);
+                  savePreferences({ scene });
+                }}
+                onCharacter2Change={(char) => {
+                  setSelectedCharacter2(char);
+                }}
+                onDualCharacterModeChange={(enabled) => {
+                  setDualCharacterMode(enabled);
+                  if (!enabled) {
+                    setSelectedCharacter2(null);
+                  }
+                }}
+                onPreferencesChange={handlePreferencesChange}
+              />
             <SocialShare />
             <Button variant="outline" size="icon" onClick={toggleFullscreen}>
               <Maximize2 className="h-4 w-4" />
@@ -494,19 +555,37 @@ const Index = () => {
           </div>
 
           {/* Main content area */}
-          <div className="relative flex flex-1 flex-row gap-y-0 gap-x-2 max-md:flex-col min-h-0 min-w-0">
+          <div className={`relative flex flex-1 ${dualCharacterMode && selectedCharacter2 ? 'flex-row' : 'flex-row'} gap-y-0 gap-x-2 max-md:flex-col min-h-0 min-w-0`}>
             {/* Character display - takes up left side */}
-            <div className="flex-1 min-w-[50%] h-full relative max-md:min-w-full min-h-0 min-w-0 overflow-visible">
-              <CharacterDisplay
-                paused={paused}
-                focusAt={mousePosition}
-                xOffset={`${isMobile ? characterPosition.x : characterPosition.x - 10}%`}
-                yOffset="0%"
-                scale={characterScale}
-                mouthOpenSize={mouthOpenSize}
-                characterId={selectedCharacter}
-                emotionAnimation={emotionAnimation}
-              />
+            <div className={`${dualCharacterMode && selectedCharacter2 ? 'flex-1 min-w-0' : 'flex-1 min-w-[50%]'} h-full relative max-md:min-w-full min-h-0 min-w-0 overflow-visible`}>
+              {dualCharacterMode && selectedCharacter2 ? (
+                <DualCharacterDisplay
+                  character1Id={selectedCharacter}
+                  character2Id={selectedCharacter2}
+                  paused={paused}
+                  focusAt={mousePosition}
+                  emotionAnimation={emotionAnimation}
+                  onCharacter1Change={(char) => {
+                    setSelectedCharacter(char);
+                    savePreferences({ characterId: char });
+                  }}
+                  onCharacter2Change={(char) => {
+                    setSelectedCharacter2(char);
+                  }}
+                />
+              ) : (
+                <CharacterDisplay
+                  paused={paused}
+                  focusAt={mousePosition}
+                  xOffset={`${isMobile ? characterPosition.x : characterPosition.x - 10}%`}
+                  yOffset="0%"
+                  scale={characterScale}
+                  mouthOpenSize={mouthOpenSize}
+                  characterId={selectedCharacter}
+                  emotionAnimation={emotionAnimation}
+                  outfitIds={appliedOutfitIds}
+                />
+              )}
             </div>
 
             {/* Interactive area - Voice controls */}
@@ -554,7 +633,7 @@ const Index = () => {
                 )}
                 
                 {/* Emotion indicator */}
-                {isActive && preferences.showEmotionIndicator && emotionManager?.emotionState?.current?.emotion !== 'neutral' && (
+                {isActive && preferences.showEmotionIndicator && (emotionManager?.emotionState?.current?.emotion !== 'neutral' || gestureControls.gesture !== 'none') && (
                   <div className="mt-2 px-4 py-2 bg-card/40 backdrop-blur-md border border-border/50 rounded-lg text-center animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <p className="text-xs text-foreground/70">
                       Emotion: <span className="font-semibold capitalize">{emotionManager?.emotionState?.current?.emotion || 'neutral'}</span>
@@ -563,6 +642,11 @@ const Index = () => {
                         ({Math.round((emotionManager?.emotionState?.current?.intensity || 0) * 100)}%)
                       </span>
                     </p>
+                    {gestureControls.gesture !== 'none' && (
+                      <p className="text-xs text-foreground/60 mt-1">
+                        Gesture: <span className="font-semibold capitalize">{gestureControls.gesture.replace('_', ' ')}</span>
+                      </p>
+                    )}
                     <p className="text-xs text-foreground/50 mt-1">
                       Scene: <span className="font-semibold capitalize">{environment?.environmentState?.scene || 'forest'}</span>
                     </p>

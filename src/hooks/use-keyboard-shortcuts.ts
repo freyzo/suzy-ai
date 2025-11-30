@@ -42,3 +42,5 @@ export const COMMON_SHORTCUTS = {
   CHANGE_CHARACTER: { key: 'c', ctrlKey: true, description: 'Change character' },
 };
 
+
+
