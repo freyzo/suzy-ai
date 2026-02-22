@@ -26,6 +26,54 @@ import CustomizationPanel from "@/components/CustomizationPanel";
 import { getOptimalParticleCount } from "@/utils/performance";
 import { useGestureControls } from "@/hooks/use-gesture-controls";
 import { analytics, AnalyticsEvents } from "@/utils/analytics";
+import { Button } from "@/components/ui/button";
+
+type Mood = "great" | "good" | "okay" | "low";
+
+interface CompanionProfile {
+  name: string;
+  focus: string;
+  memoryEnabled: boolean;
+  lastMood: Mood | null;
+  lastMoodAt: string | null;
+}
+
+const COMPANION_PROFILE_KEY = "suzy-companion-profile";
+const LAST_SESSION_KEY = "suzy-last-session-at";
+
+function loadCompanionProfile(): CompanionProfile {
+  try {
+    const raw = localStorage.getItem(COMPANION_PROFILE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        name: parsed.name || "",
+        focus: parsed.focus || "",
+        memoryEnabled: parsed.memoryEnabled !== false,
+        lastMood: parsed.lastMood || null,
+        lastMoodAt: parsed.lastMoodAt || null,
+      };
+    }
+  } catch (error) {
+    console.warn("Failed to load companion profile:", error);
+  }
+
+  return {
+    name: "",
+    focus: "",
+    memoryEnabled: true,
+    lastMood: null,
+    lastMoodAt: null,
+  };
+}
+
+function saveCompanionProfile(profile: CompanionProfile): void {
+  try {
+    localStorage.setItem(COMPANION_PROFILE_KEY, JSON.stringify(profile));
+  } catch (error) {
+    console.warn("Failed to save companion profile:", error);
+  }
+}
 
 const Index = () => {
   const { toast } = useToast();
@@ -47,11 +95,23 @@ const Index = () => {
   const [appliedOutfitIds, setAppliedOutfitIds] = useState<string[]>(
     preferences.characterOutfits?.[preferences.characterId] || []
   );
+  const [companionProfile, setCompanionProfile] = useState<CompanionProfile>(loadCompanionProfile());
+  const [nameInput, setNameInput] = useState("");
+  const [focusInput, setFocusInput] = useState("");
+  const [lastSessionAt, setLastSessionAt] = useState<string | null>(null);
 
   // New feature hooks
   const { isFullscreen, toggleFullscreen } = useFullscreen();
   const { takeScreenshot } = useScreenshot();
   const audioSystem = useAudioSystem();
+
+  const updateCompanionProfile = (patch: Partial<CompanionProfile>) => {
+    setCompanionProfile((current) => {
+      const next = { ...current, ...patch };
+      saveCompanionProfile(next);
+      return next;
+    });
+  };
 
   // Suppress expected WebSocket closing errors from ElevenLabs SDK
   useEffect(() => {
@@ -143,6 +203,9 @@ const Index = () => {
         title: "Connected",
         description: "Ready to chat with Suzy",
       });
+      const now = new Date().toISOString();
+      localStorage.setItem(LAST_SESSION_KEY, now);
+      setLastSessionAt(now);
     },
     onDisconnect: () => {
       console.log("Disconnected from ElevenLabs");
@@ -171,7 +234,11 @@ const Index = () => {
     },
     onAudio: (audio) => {
       // Handle audio chunks to ensure continuous playback
-      console.log("Audio chunk received, length:", audio?.byteLength || 0);
+      const audioLength =
+        typeof audio === "string"
+          ? audio.length
+          : (audio as ArrayBuffer | undefined)?.byteLength || 0;
+      console.log("Audio chunk received, length:", audioLength);
     },
     onModeChange: (mode) => {
       console.log("Mode changed:", mode);
@@ -276,6 +343,9 @@ const Index = () => {
           
           console.log('Conversation stopped');
           analytics.track({ name: AnalyticsEvents.CONVERSATION_ENDED });
+          const now = new Date().toISOString();
+          localStorage.setItem(LAST_SESSION_KEY, now);
+          setLastSessionAt(now);
         } catch (error) {
           console.error('Error ending conversation:', error);
           setIsConnecting(false);
@@ -558,6 +628,9 @@ const Index = () => {
   useEffect(() => {
     const prefs = loadPreferences();
     setPreferences(prefs);
+    setNameInput(companionProfile.name);
+    setFocusInput(companionProfile.focus);
+    setLastSessionAt(localStorage.getItem(LAST_SESSION_KEY));
     if (prefs.fullscreenOnStart && !isFullscreen) {
       setTimeout(() => toggleFullscreen(), 100);
     }
@@ -695,6 +768,103 @@ const Index = () => {
             {!isMobile && (
               <div className="absolute right-4 bottom-4 flex flex-col gap-4 z-10 max-lg:right-2 max-lg:bottom-2">
                 {/* Voice interface */}
+                <div className="p-4 bg-card/35 backdrop-blur-md border border-border/50 rounded-2xl shadow-lg max-w-md">
+                  {!companionProfile.name ? (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-foreground">Meet your companion</p>
+                      <input
+                        value={nameInput}
+                        onChange={(e) => setNameInput(e.target.value)}
+                        placeholder="Your name"
+                        className="w-full rounded-lg bg-background/60 border border-border/60 px-3 py-2 text-sm"
+                      />
+                      <input
+                        value={focusInput}
+                        onChange={(e) => setFocusInput(e.target.value)}
+                        placeholder="What should Suzy help you with?"
+                        className="w-full rounded-lg bg-background/60 border border-border/60 px-3 py-2 text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          const nextName = nameInput.trim();
+                          const nextFocus = focusInput.trim();
+                          if (!nextName) {
+                            toast({
+                              title: "Name needed",
+                              description: "Please add your name first.",
+                            });
+                            return;
+                          }
+                          updateCompanionProfile({ name: nextName, focus: nextFocus });
+                          toast({
+                            title: `Nice to meet you, ${nextName}`,
+                            description: "Suzy will use this profile for future chats.",
+                          });
+                        }}
+                      >
+                        Save profile
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-foreground/90">
+                        Hi <span className="font-semibold">{companionProfile.name}</span>!{" "}
+                        {companionProfile.focus
+                          ? `Today we can focus on ${companionProfile.focus}.`
+                          : "Ready for your next chat with Suzy?"}
+                      </p>
+                      {lastSessionAt && (
+                        <p className="text-xs text-foreground/60">
+                          Last session: {new Date(lastSessionAt).toLocaleString()}
+                        </p>
+                      )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={isActive || isConnecting || isProcessing}
+                          onClick={handleMicClick}
+                        >
+                          Continue chat
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={companionProfile.memoryEnabled ? "default" : "outline"}
+                          onClick={() => updateCompanionProfile({ memoryEnabled: !companionProfile.memoryEnabled })}
+                        >
+                          Memory: {companionProfile.memoryEnabled ? "On" : "Off"}
+                        </Button>
+                      </div>
+                      <div>
+                        <p className="text-xs text-foreground/70 mb-2">Daily check-in: How do you feel?</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {(["great", "good", "okay", "low"] as Mood[]).map((mood) => (
+                            <button
+                              key={mood}
+                              type="button"
+                              onClick={() =>
+                                updateCompanionProfile({
+                                  lastMood: mood,
+                                  lastMoodAt: new Date().toISOString(),
+                                })
+                              }
+                              className={`rounded-md px-2 py-1 text-xs border ${
+                                companionProfile.lastMood === mood
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background/50 border-border/60 text-foreground/80"
+                              }`}
+                            >
+                              {mood}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-8 max-lg:gap-4">
                   {/* Microphone */}
                   <div className="flex flex-col items-center gap-4 max-lg:gap-2">
