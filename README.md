@@ -40,10 +40,19 @@ Sources:
 
 ## Architecture (Essential)
 
-- `src/pages/Index.tsx`: main conversation and UI orchestration
-- `src/components/Live2D/*`: avatar rendering and animation pipeline
-- `src/components/CharacterDisplay.tsx`: model switching + loading/fallback behavior
-- `supabase/functions/elevenlabs-session/index.ts`: signed session URL generation
+```text
+src/
+├── pages/
+│   └── Index.tsx                      # main conversation and UI orchestration
+└── components/
+    ├── CharacterDisplay.tsx           # model switching + loading/fallback behavior
+    └── Live2D/                        # avatar rendering and animation pipeline
+
+supabase/
+└── functions/
+    └── elevenlabs-session/
+        └── index.ts                   # signed session URL generation
+```
 
 ## Quick Run
 
