@@ -2,9 +2,6 @@
 
 Real-time AI companion with Live2D avatar, voice conversation, and emotion-aware animation.
 
-Live demo: `https://suzy-ai.vercel.app/`  
-Repo: `https://github.com/freyzo/suzy-ai`
-
 ## Preview
 
 ![Suzy AI Social Preview](https://repository-images.githubusercontent.com/1097880352/ae6321d8-6466-46b9-8097-38f62a984c08)
