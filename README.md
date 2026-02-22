@@ -7,7 +7,7 @@ Repo: `https://github.com/freyzo/suzy-ai`
 
 ## Preview
 
-![Suzy AI Social Preview](https://opengraph.githubassets.com/1/freyzo/suzy-ai)
+![Suzy AI Social Preview](https://repository-images.githubusercontent.com/1097880352/ae6321d8-6466-46b9-8097-38f62a984c08)
 
 ## Why This Project
 
