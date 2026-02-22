@@ -5,6 +5,10 @@ Real-time AI companion with Live2D avatar, voice conversation, and emotion-aware
 Live demo: `https://suzy-ai.vercel.app/`  
 Repo: `https://github.com/freyzo/suzy-ai`
 
+## Preview
+
+![Suzy AI Social Preview](docs/images/social-preview.png)
+
 ## Why This Project
 
 I built Suzy as a safe, non-judgmental companion for people who feel lonely, socially awkward, or misunderstood.  
@@ -56,5 +60,4 @@ Create `.env.local`:
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
 ```
