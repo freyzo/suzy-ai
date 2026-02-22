@@ -16,10 +16,11 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
+*.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 /Users/suzyzou/Desktop/Projects/suzy-ai/dist/_0_
+/Users/suzyzou/Desktop/Freya-Projects/suzy-ai/plan

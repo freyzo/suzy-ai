@@ -49,6 +49,7 @@ export default function CharacterDisplay({
   const [useLive2D, setUseLive2D] = useState(true);
   const [modelLoadError, setModelLoadError] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
+  const [isModelVisible, setIsModelVisible] = useState(false);
   
   // Get character model source
   const character = CHARACTERS.find(c => c.id === characterId) || CHARACTERS[0];
@@ -73,6 +74,7 @@ export default function CharacterDisplay({
   // Reset loading state when character changes
   useEffect(() => {
     setIsModelLoading(true);
+    setIsModelVisible(false);
     setModelLoadError(false);
   }, [characterId]);
 
@@ -103,70 +105,52 @@ export default function CharacterDisplay({
         </Suspense>
       ) : useLive2D && !modelLoadError ? (
         <>
-          {/* Show fallback image while loading */}
+          {/* Show subtle loading state while model initializes */}
           {isModelLoading && (
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden min-h-[200px] min-w-[200px] z-0">
-              <div 
-                className="relative w-full h-full flex items-end justify-center" 
-                style={{
-                  transform: typeof xOffset === 'string' 
-                    ? `translateX(${xOffset}) translateY(${typeof yOffset === 'string' ? yOffset : `${yOffset}px`})` 
-                    : `translateX(${xOffset}px) translateY(${typeof yOffset === 'string' ? yOffset : `${yOffset}px`})`,
-                }}
-              >
-                <img
-                  src="/assets/live2d/models/hiyori_free_zh/avatar.png"
-                  alt="Suzy Character"
-                  className="w-auto h-[95vh] max-h-[95vh] max-w-[50vw] max-md:max-w-[90vw] max-md:h-[80vh] object-contain object-bottom pointer-events-auto select-none z-10 opacity-50"
-                  style={{
-                    imageRendering: 'auto',
-                    transform: `scale(${scale})`,
-                    minHeight: '200px',
-                    maxHeight: '100%',
-                  }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
-                />
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10 pointer-events-none">
+              <div className="h-2 w-24 rounded-full bg-foreground/20 overflow-hidden">
+                <div className="h-full w-1/2 bg-foreground/50 animate-pulse" />
               </div>
             </div>
           )}
-          <Screen key={characterId}>
-            {(width, height) => (
-              <Live2DCanvas width={width} height={height} resolution={2}>
-                {(app) => (
-                  <Live2DModelComponent
-                    key={characterId}
-                    app={app}
-                    modelSrc={modelSrc}
-                    width={width}
-                    height={height}
-                    paused={paused}
-                    focusAt={focusAt}
-                    xOffset={xOffset}
-                    yOffset={yOffset}
-                    scale={scale}
-                    mouthOpenSize={mouthOpenSize}
-                    emotionAnimation={emotionAnimation}
-                    characterId={characterId}
-                    onModelLoaded={() => {
-                      console.log('Live2D model loaded:', character.name);
-                      setIsModelLoading(false);
-                      setUseLive2D(true);
-                      setModelLoadError(false);
-                    }}
-                    onModelError={() => {
-                      console.warn('Live2D model failed to load, falling back to static image');
-                      setIsModelLoading(false);
-                      setModelLoadError(true);
-                      setUseLive2D(false);
-                    }}
-                  />
-                )}
-              </Live2DCanvas>
-            )}
-          </Screen>
+          <div className={`transition-opacity duration-500 ${isModelVisible ? 'opacity-100' : 'opacity-0'}`}>
+            <Screen key={characterId}>
+              {(width, height) => (
+                <Live2DCanvas width={width} height={height} resolution={2}>
+                  {(app) => (
+                    <Live2DModelComponent
+                      key={characterId}
+                      app={app}
+                      modelSrc={modelSrc}
+                      width={width}
+                      height={height}
+                      paused={paused}
+                      focusAt={focusAt}
+                      xOffset={xOffset}
+                      yOffset={yOffset}
+                      scale={scale}
+                      mouthOpenSize={mouthOpenSize}
+                      emotionAnimation={emotionAnimation}
+                      characterId={characterId}
+                      onModelLoaded={() => {
+                        console.log('Live2D model loaded:', character.name);
+                        setIsModelLoading(false);
+                        setUseLive2D(true);
+                        setModelLoadError(false);
+                        requestAnimationFrame(() => setIsModelVisible(true));
+                      }}
+                      onModelError={() => {
+                        console.warn('Live2D model failed to load, falling back to static image');
+                        setIsModelLoading(false);
+                        setModelLoadError(true);
+                        setUseLive2D(false);
+                      }}
+                    />
+                  )}
+                </Live2DCanvas>
+              )}
+            </Screen>
+          </div>
           
           {/* Overlay accessories */}
           {overlayAccessories.map((accessory, index) => {
