@@ -23,9 +23,6 @@ import { useScreenshot } from "@/hooks/use-screenshot";
 import { useAudioSystem } from "@/hooks/use-audio-system";
 import { loadPreferences, savePreferences, UserPreferences } from "@/utils/user-preferences";
 import CustomizationPanel from "@/components/CustomizationPanel";
-import SocialShare from "@/components/SocialShare";
-import { Maximize2, Camera } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { getOptimalParticleCount } from "@/utils/performance";
 import { useGestureControls } from "@/hooks/use-gesture-controls";
 import { analytics, AnalyticsEvents } from "@/utils/analytics";
@@ -658,13 +655,6 @@ const Index = () => {
                 }}
                 onPreferencesChange={handlePreferencesChange}
               />
-            <SocialShare />
-            <Button variant="outline" size="icon" onClick={toggleFullscreen}>
-              <Maximize2 className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => takeScreenshot()}>
-              <Camera className="h-4 w-4" />
-            </Button>
           </div>
 
           {/* Main content area */}
